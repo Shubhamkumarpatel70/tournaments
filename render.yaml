@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: arenaofchampions
+    env: node
+    buildCommand: npm install && cd client && npm install && npm run build && cd ..
+    startCommand: npm run server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 10000
+

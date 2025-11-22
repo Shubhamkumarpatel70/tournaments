@@ -1,0 +1,253 @@
+import React, { useState } from 'react';
+import Button from './Button';
+import api from '../utils/api';
+
+const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    game: 'BGMI',
+    members: [
+      { name: '', gameId: '' }
+    ]
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setError('');
+  };
+
+  const handleMemberChange = (index, field, value) => {
+    const newMembers = [...formData.members];
+    newMembers[index][field] = value;
+    setFormData(prev => ({
+      ...prev,
+      members: newMembers
+    }));
+    setError('');
+  };
+
+  const addMember = () => {
+    if (formData.members.length >= 4) {
+      setError('Maximum 4 members allowed');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      members: [...prev.members, { name: '', gameId: '' }]
+    }));
+  };
+
+  const removeMember = (index) => {
+    if (formData.members.length <= 1) {
+      setError('Team must have at least 1 member');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      members: prev.members.filter((_, i) => i !== index)
+    }));
+  };
+
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      setError('Team name is required');
+      return false;
+    }
+
+    if (!formData.game) {
+      setError('Please select a game');
+      return false;
+    }
+
+    for (let i = 0; i < formData.members.length; i++) {
+      const member = formData.members[i];
+      if (!member.name.trim() || !member.gameId.trim()) {
+        setError(`Name and Game ID are required for member ${i + 1}`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!validateForm()) {
+      return;
+    }
+
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('You must be logged in to create a team. Please log in and try again.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await api.post('/teams', formData);
+      onSuccess(response.data);
+      // Reset form
+      setFormData({
+        name: '',
+        game: 'BGMI',
+        members: [{ name: '', gameId: '' }]
+      });
+      onClose();
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || 'Failed to create team';
+      if (errorMessage.includes('already have an active team')) {
+        setError('You already have an active team. Please delete or deactivate your existing team before creating a new one.');
+      } else if (errorMessage.includes('Token is not valid') || errorMessage.includes('authorization denied')) {
+        setError('Your session has expired. Please log in again.');
+        // Clear invalid token
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold neon-text-cyan">Create Team</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-lava-orange transition-colors text-2xl"
+          >
+            ×
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Team Name */}
+          <div>
+            <label className="block text-sm font-bold mb-2">Team Name *</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+              placeholder="Enter team name"
+            />
+          </div>
+
+          {/* Game Selection */}
+          <div>
+            <label className="block text-sm font-bold mb-2">Game *</label>
+            <select
+              name="game"
+              value={formData.game}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+            >
+              <option value="BGMI">BGMI</option>
+              <option value="Free Fire">Free Fire</option>
+            </select>
+          </div>
+
+          {/* Team Members */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <label className="block text-sm font-bold">Team Members (1-4) *</label>
+              {formData.members.length < 4 && (
+                <button
+                  type="button"
+                  onClick={addMember}
+                  className="px-4 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors text-sm"
+                >
+                  + Add Member
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {formData.members.map((member, index) => (
+                <div key={index} className="bg-lava-black border border-lava-orange/20 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-lava-orange">Member {index + 1}</h3>
+                    {formData.members.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeMember(index)}
+                        className="text-red-400 hover:text-red-500 text-sm"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold mb-1 text-gray-400">Name *</label>
+                      <input
+                        type="text"
+                        value={member.name}
+                        onChange={(e) => handleMemberChange(index, 'name', e.target.value)}
+                        required
+                        className="w-full px-3 py-2 bg-charcoal border border-lava-orange/20 rounded-lg text-off-white focus:outline-none focus:border-lava-orange text-sm"
+                        placeholder="Full name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold mb-1 text-gray-400">Game ID *</label>
+                      <input
+                        type="text"
+                        value={member.gameId}
+                        onChange={(e) => handleMemberChange(index, 'gameId', e.target.value)}
+                        required
+                        className="w-full px-3 py-2 bg-charcoal border border-lava-orange/20 rounded-lg text-off-white focus:outline-none focus:border-lava-orange text-sm"
+                        placeholder="Game ID"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <Button type="submit" variant="primary" className="flex-1" disabled={loading}>
+              {loading ? 'Creating...' : 'Create Team'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default CreateTeamModal;
+

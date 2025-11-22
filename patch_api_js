@@ -1,0 +1,13 @@
+export const tournamentAPI = {
+  getAll: (params) => api.get('/tournaments', { params }),
+  getById: (id) => api.get(`/tournaments/${id}`),
+  register: (id) => api.post(`/tournaments/${id}/register`),
+};
+=======
+// Tournament API
+export const tournamentAPI = {
+  getAll: (params) => api.get('/tournaments', { params }),
+  getById: (id) => api.get(`/tournaments/${id}`),
+  register: (id) => api.post(`/tournaments/${id}/register`),
+  getMyRegistrations: () => api.get('/tournamentRegistrations/my-registrations'),
+};

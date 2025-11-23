@@ -11,6 +11,9 @@ import Leaderboards from './pages/Leaderboards';
 import UpcomingMatches from './pages/UpcomingMatches';
 import AboutUs from './pages/AboutUs';
 import Contact from './pages/Contact';
+import Rules from './pages/Rules';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -33,6 +36,9 @@ function App() {
               <Route path="/upcoming-matches" element={<UpcomingMatches />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/rules" element={<Rules />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route 

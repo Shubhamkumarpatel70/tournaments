@@ -20,8 +20,8 @@ const matchScheduleSchema = new mongoose.Schema({
   },
   tournamentType: {
     type: String,
-    enum: ['Solo', 'Duo', 'Squad', 'Custom'],
-    required: true
+    required: true,
+    trim: true
   },
   matchDate: {
     type: Date,

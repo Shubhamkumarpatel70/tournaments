@@ -14,7 +14,7 @@ const tournamentSchema = new mongoose.Schema({
   tournamentType: {
     type: String,
     required: true,
-    enum: ['Solo', 'Duo', 'Squad', 'Custom']
+    trim: true
   },
   mode: {
     type: String,

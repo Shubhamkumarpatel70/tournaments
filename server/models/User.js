@@ -41,8 +41,22 @@ const userSchema = new mongoose.Schema({
     kills: { type: Number, default: 0 },
     deaths: { type: Number, default: 0 },
     kdRatio: { type: Number, default: 0 },
-    totalEarnings: { type: Number, default: 0 }
+    totalEarnings: { type: Number, default: 0 },
+    paidEarnings: { type: Number, default: 0 },
+    pendingEarnings: { type: Number, default: 0 }
   },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'paid', 'rejected'],
+    default: 'pending'
+  },
+  paymentHistory: [{
+    amount: { type: Number, required: true },
+    status: { type: String, enum: ['pending', 'processing', 'paid', 'rejected'], required: true },
+    processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    processedAt: { type: Date, default: Date.now },
+    notes: { type: String, default: '' }
+  }],
   tournaments: [{
     tournamentId: {
       type: mongoose.Schema.Types.ObjectId,

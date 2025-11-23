@@ -22,14 +22,22 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
   const [matchDateInput, setMatchDateInput] = useState(''); // For date picker (YYYY-MM-DD)
   const [registrationDeadlineInput, setRegistrationDeadlineInput] = useState(''); // For datetime-local (YYYY-MM-DDTHH:mm)
   const [games, setGames] = useState([]);
+  const [tournamentTypes, setTournamentTypes] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchGames();
+      fetchTournamentTypes();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (formData.game) {
+      fetchTournamentTypes(formData.game);
+    }
+  }, [formData.game]);
 
   const fetchGames = async () => {
     try {
@@ -40,6 +48,39 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
+  const fetchTournamentTypes = async (game = null) => {
+    try {
+      const url = game ? `/tournament-types?game=${encodeURIComponent(game)}` : '/tournament-types';
+      const response = await api.get(url);
+      setTournamentTypes(response.data || []);
+      
+      // Auto-select first tournament type if available and none selected
+      if (response.data && response.data.length > 0 && !formData.tournamentType) {
+        setFormData(prev => ({
+          ...prev,
+          tournamentType: response.data[0].name
+        }));
+      } else if (!response.data || response.data.length === 0) {
+        // If no tournament types found, use fallback
+        setTournamentTypes([
+          { name: 'Solo' },
+          { name: 'Duo' },
+          { name: 'Squad' },
+          { name: 'Custom' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching tournament types:', error);
+      // Fallback to default types if API fails
+      setTournamentTypes([
+        { name: 'Solo' },
+        { name: 'Duo' },
+        { name: 'Squad' },
+        { name: 'Custom' }
+      ]);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -47,6 +88,11 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
       [name]: value
     }));
     setError('');
+    
+    // When game changes, fetch tournament types for that game
+    if (name === 'game') {
+      fetchTournamentTypes(value);
+    }
   };
 
   // Convert YYYY-MM-DD to DD-MM-YY
@@ -260,12 +306,17 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
                 value={formData.tournamentType}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+                disabled={!formData.game || tournamentTypes.length === 0}
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="Solo">Solo</option>
-                <option value="Duo">Duo</option>
-                <option value="Squad">Squad</option>
-                <option value="Custom">Custom</option>
+                <option value="">
+                  {!formData.game ? 'Select Game First' : tournamentTypes.length === 0 ? 'No Types Available' : 'Select Tournament Type'}
+                </option>
+                {tournamentTypes.map(type => (
+                  <option key={type._id || type.name} value={type.name}>
+                    {type.name}
+                  </option>
+                ))}
               </select>
             </div>
 

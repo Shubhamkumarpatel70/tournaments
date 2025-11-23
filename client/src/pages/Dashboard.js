@@ -28,6 +28,7 @@ const Dashboard = () => {
   const [isEditTeamModalOpen, setIsEditTeamModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showArchive, setShowArchive] = useState(false); // Toggle for archive view
 
   const [loading, setLoading] = useState(true);
 
@@ -745,157 +746,225 @@ const Dashboard = () => {
         {/* Joined Matches */}
         {joinedMatches.length > 0 && (
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-lava-orange">
-              Joined Matches
-            </h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-lava-orange">
+                {showArchive ? 'Archived Matches' : 'Joined Matches'}
+              </h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowArchive(!showArchive)}
+                  className="whitespace-nowrap"
+                >
+                  {showArchive ? 'Show Recent' : 'Archive Matches'}
+                </Button>
+              </div>
+            </div>
             <div className="space-y-4">
-              {joinedMatches.map((registration) => {
-                const tournament = registration.tournament || registration.tournamentId;
-                if (!tournament) return null;
-                
-                const matchDate = new Date(registration.matchDate || tournament.matchDate || tournament.date);
-                const isUpcoming = matchDate > new Date();
-                const statusColors = {
-                  pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                  approved: 'bg-green-500/20 text-green-400 border-green-500/30',
-                  rejected: 'bg-red-500/20 text-red-400 border-red-500/30'
-                };
-                
+              {(() => {
+                // Sort matches by date (newest first)
+                const sortedMatches = [...joinedMatches].sort((a, b) => {
+                  const dateA = new Date(a.matchDate || a.tournament?.matchDate || a.tournamentId?.matchDate || 0);
+                  const dateB = new Date(b.matchDate || b.tournament?.matchDate || b.tournamentId?.matchDate || 0);
+                  return dateB - dateA;
+                });
+
+                // Separate into recent (upcoming or recent past) and archived (older past)
+                const now = new Date();
+                const recentMatches = sortedMatches.filter(reg => {
+                  const matchDate = new Date(reg.matchDate || reg.tournament?.matchDate || reg.tournamentId?.matchDate || 0);
+                  // Consider matches from last 30 days or upcoming as recent
+                  const daysDiff = (now - matchDate) / (1000 * 60 * 60 * 24);
+                  return matchDate > now || daysDiff <= 30;
+                });
+                const archivedMatches = sortedMatches.filter(reg => {
+                  const matchDate = new Date(reg.matchDate || reg.tournament?.matchDate || reg.tournamentId?.matchDate || 0);
+                  const daysDiff = (now - matchDate) / (1000 * 60 * 60 * 24);
+                  return matchDate <= now && daysDiff > 30;
+                });
+
+                // Show only 3 most recent if not in archive view
+                const displayMatches = showArchive ? archivedMatches : recentMatches.slice(0, 3);
+                const hasMoreMatches = !showArchive && recentMatches.length > 3;
+
                 return (
-                  <div
-                    key={registration._id}
-                    className="bg-lava-black border border-lava-orange/20 rounded-lg p-3 sm:p-4 hover:border-lava-orange transition-all"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
-                      <div className="flex-1 w-full">
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                          <span className="bg-lava-orange text-lava-black px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
-                            {tournament.game}
-                          </span>
-                          <h3 className="font-bold text-base sm:text-lg break-words">{tournament.name}</h3>
-                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold border ${statusColors[registration.status] || statusColors.pending}`}>
-                            {registration.status.charAt(0).toUpperCase() + registration.status.slice(1)}
-                          </span>
-                        </div>
-                        <div className="space-y-1 text-xs sm:text-sm text-gray-400">
-                          <p>
-                            👥 Team: <span className="text-off-white font-semibold">{registration.teamName}</span>
-                          </p>
-                          <p>
-                            📅 Match Date: {matchDate.toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                          <p>
-                            💰 Prize Pool: <span className="text-fiery-yellow font-semibold">₹{tournament.prizePool?.toLocaleString() || '0'}</span>
-                          </p>
-                          <p>
-                            💳 Payment: <span className="text-off-white">{registration.paymentType} - {registration.paymentOption}</span>
-                          </p>
-                          {registration.rejectionReason && (
-                            <p className="text-red-400">
-                              ❌ Rejection Reason: {registration.rejectionReason}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="w-full sm:w-auto flex flex-col items-start sm:items-end gap-2">
-                        {isUpcoming && (
-                          <span className="bg-green-500/20 text-green-400 px-2 sm:px-3 py-1 rounded text-xs font-bold border border-green-500/30">
-                            Upcoming
-                          </span>
-                        )}
-                        {!isUpcoming && (
-                          <span className="bg-gray-500/20 text-gray-400 px-2 sm:px-3 py-1 rounded text-xs font-bold border border-gray-500/30">
-                            Past Match
-                          </span>
-                        )}
-                        <div className="text-left sm:text-right">
-                          <div className="text-fiery-yellow font-bold text-lg sm:text-xl">
-                            ₹{tournament.prizePool?.toLocaleString() || '0'}
-                          </div>
-                          <div className="text-xs text-gray-400">Prize Pool</div>
-                        </div>
-                      </div>
-                    </div>
-                    {registration.status === 'approved' && (
-                      <div className="flex justify-center mt-4 pt-4 border-t border-lava-orange/20">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => fetchMatchScheduleDetails(tournament._id || tournament.id)}
-                          className="whitespace-nowrap"
-                        >
-                          {expandedMatchId === (tournament._id || tournament.id) ? 'Hide Details' : 'View Match Details'}
-                        </Button>
-                      </div>
-                    )}
-                    {/* Match Schedule Details */}
-                    {expandedMatchId === (tournament._id || tournament.id) && (
-                      <div className="mt-4 pt-4 border-t border-lava-orange/20">
-                        <h4 className="text-sm font-bold text-lava-orange mb-3">Match Schedule</h4>
-                        {matchScheduleDetails[tournament._id || tournament.id] ? (
-                          <div className="space-y-3 bg-charcoal/50 rounded-lg p-4">
-                            <div>
-                              <label className="text-xs text-gray-400">Game ID:</label>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-lava-orange font-mono font-bold text-lg">
-                                  {matchScheduleDetails[tournament._id || tournament.id].gameId}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(matchScheduleDetails[tournament._id || tournament.id].gameId);
-                                    alert("Game ID copied!");
-                                  }}
-                                  className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
-                                >
-                                  Copy
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="text-xs text-gray-400">Password:</label>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-lava-orange font-mono font-bold text-lg">
-                                  {matchScheduleDetails[tournament._id || tournament.id].password}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(matchScheduleDetails[tournament._id || tournament.id].password);
-                                    alert("Password copied!");
-                                  }}
-                                  className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
-                                >
-                                  Copy
-                                </button>
-                              </div>
-                            </div>
-                            {matchScheduleDetails[tournament._id || tournament.id].tournamentType && (
-                              <div>
-                                <label className="text-xs text-gray-400">Type:</label>
-                                <div className="mt-1">
-                                  <span className="text-off-white font-semibold text-lg">
-                                    {matchScheduleDetails[tournament._id || tournament.id].tournamentType}
+                  <>
+                    {displayMatches.length > 0 ? (
+                      displayMatches.map((registration) => {
+                        const tournament = registration.tournament || registration.tournamentId;
+                        if (!tournament) return null;
+                        
+                        const matchDate = new Date(registration.matchDate || tournament.matchDate || tournament.date);
+                        const isUpcoming = matchDate > new Date();
+                        const statusColors = {
+                          pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                          approved: 'bg-green-500/20 text-green-400 border-green-500/30',
+                          rejected: 'bg-red-500/20 text-red-400 border-red-500/30'
+                        };
+                        
+                        return (
+                          <div
+                            key={registration._id}
+                            className="bg-lava-black border border-lava-orange/20 rounded-lg p-3 sm:p-4 hover:border-lava-orange transition-all"
+                          >
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
+                              <div className="flex-1 w-full">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                                  <span className="bg-lava-orange text-lava-black px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                                    {tournament.game}
+                                  </span>
+                                  <h3 className="font-bold text-base sm:text-lg break-words">{tournament.name}</h3>
+                                  <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold border ${statusColors[registration.status] || statusColors.pending}`}>
+                                    {registration.status.charAt(0).toUpperCase() + registration.status.slice(1)}
                                   </span>
                                 </div>
+                                <div className="space-y-1 text-xs sm:text-sm text-gray-400">
+                                  <p>
+                                    👥 Team: <span className="text-off-white font-semibold">{registration.teamName}</span>
+                                  </p>
+                                  {registration.phoneNumber && (
+                                    <p>
+                                      📱 Phone: <span className="text-off-white font-semibold">{registration.phoneNumber}</span>
+                                    </p>
+                                  )}
+                                  <p>
+                                    📅 Match Date: {matchDate.toLocaleDateString('en-US', {
+                                      weekday: 'long',
+                                      year: 'numeric',
+                                      month: 'long',
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                  <p>
+                                    💰 Prize Pool: <span className="text-fiery-yellow font-semibold">₹{tournament.prizePool?.toLocaleString() || '0'}</span>
+                                  </p>
+                                  <p>
+                                    💳 Payment: <span className="text-off-white">{registration.paymentType} - {registration.paymentOption}</span>
+                                  </p>
+                                  {registration.rejectionReason && (
+                                    <p className="text-red-400">
+                                      ❌ Rejection Reason: {registration.rejectionReason}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="w-full sm:w-auto flex flex-col items-start sm:items-end gap-2">
+                                {isUpcoming && (
+                                  <span className="bg-green-500/20 text-green-400 px-2 sm:px-3 py-1 rounded text-xs font-bold border border-green-500/30">
+                                    Upcoming
+                                  </span>
+                                )}
+                                {!isUpcoming && (
+                                  <span className="bg-gray-500/20 text-gray-400 px-2 sm:px-3 py-1 rounded text-xs font-bold border border-gray-500/30">
+                                    Past Match
+                                  </span>
+                                )}
+                                <div className="text-left sm:text-right">
+                                  <div className="text-fiery-yellow font-bold text-lg sm:text-xl">
+                                    ₹{tournament.prizePool?.toLocaleString() || '0'}
+                                  </div>
+                                  <div className="text-xs text-gray-400">Prize Pool</div>
+                                </div>
+                              </div>
+                            </div>
+                            {registration.status === 'approved' && (
+                              <div className="flex justify-center mt-4 pt-4 border-t border-lava-orange/20">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => fetchMatchScheduleDetails(tournament._id || tournament.id)}
+                                  className="whitespace-nowrap"
+                                >
+                                  {expandedMatchId === (tournament._id || tournament.id) ? 'Hide Details' : 'View Match Details'}
+                                </Button>
+                              </div>
+                            )}
+                            {/* Match Schedule Details */}
+                            {expandedMatchId === (tournament._id || tournament.id) && (
+                              <div className="mt-4 pt-4 border-t border-lava-orange/20">
+                                <h4 className="text-sm font-bold text-lava-orange mb-3">Match Schedule</h4>
+                                {matchScheduleDetails[tournament._id || tournament.id] ? (
+                                  <div className="space-y-3 bg-charcoal/50 rounded-lg p-4">
+                                    <div>
+                                      <label className="text-xs text-gray-400">Game ID:</label>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-lava-orange font-mono font-bold text-lg">
+                                          {matchScheduleDetails[tournament._id || tournament.id].gameId}
+                                        </span>
+                                        <button
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(matchScheduleDetails[tournament._id || tournament.id].gameId);
+                                            alert("Game ID copied!");
+                                          }}
+                                          className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                                        >
+                                          Copy
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className="text-xs text-gray-400">Password:</label>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-lava-orange font-mono font-bold text-lg">
+                                          {matchScheduleDetails[tournament._id || tournament.id].password}
+                                        </span>
+                                        <button
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(matchScheduleDetails[tournament._id || tournament.id].password);
+                                            alert("Password copied!");
+                                          }}
+                                          className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                                        >
+                                          Copy
+                                        </button>
+                                      </div>
+                                    </div>
+                                    {matchScheduleDetails[tournament._id || tournament.id].tournamentType && (
+                                      <div>
+                                        <label className="text-xs text-gray-400">Type:</label>
+                                        <div className="mt-1">
+                                          <span className="text-off-white font-semibold text-lg">
+                                            {matchScheduleDetails[tournament._id || tournament.id].tournamentType}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-gray-400 text-sm py-4 text-center">
+                                    No match schedule available yet
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
-                        ) : (
-                          <div className="text-gray-400 text-sm py-4 text-center">
-                            No match schedule available yet
-                          </div>
-                        )}
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        {showArchive ? 'No archived matches found' : 'No recent matches'}
                       </div>
                     )}
-                  </div>
+                    {hasMoreMatches && !showArchive && (
+                      <div className="text-center pt-4 border-t border-lava-orange/20">
+                        <p className="text-sm text-gray-400 mb-2">
+                          Showing 3 of {recentMatches.length} recent matches
+                        </p>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setShowArchive(true)}
+                        >
+                          View All Archived Matches ({archivedMatches.length})
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 );
-              })}
+              })()}
             </div>
           </div>
         )}

@@ -67,6 +67,9 @@
    | `JWT_SECRET` | Any random long string (e.g., `your-super-secret-jwt-key-here-12345`) |
    | `PORT` | `10000` (Render sets this automatically, but good to have) |
    | `REACT_APP_API_URL` | Leave empty for now (we'll set after deployment) |
+   | `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name (get from https://cloudinary.com/console) |
+   | `CLOUDINARY_API_KEY` | Your Cloudinary API key |
+   | `CLOUDINARY_API_SECRET` | Your Cloudinary API secret |
 
 4. **Deploy**
    - Click "Create Web Service"
@@ -169,6 +172,9 @@ Connect to your database and insert admin user directly.
 | `JWT_SECRET` | Secret for JWT tokens | `your-random-secret-key-12345` |
 | `PORT` | Server port | `10000` (auto-set by Render) |
 | `REACT_APP_API_URL` | Frontend API URL | `https://your-app.onrender.com/api` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | `your-cloud-name` |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | `123456789012345` |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | `your-api-secret-here` |
 
 ---
 

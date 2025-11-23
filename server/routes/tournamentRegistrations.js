@@ -7,7 +7,7 @@ const { auth, authorize } = require('../middleware/auth');
 // Register for tournament
 router.post('/', auth, async (req, res) => {
   try {
-    const { tournamentId, teamId, teamName, numberOfPlayers, paymentType, paymentOption, paymentProof } = req.body;
+    const { tournamentId, teamId, teamName, numberOfPlayers, paymentType, paymentOption, paymentProof, phoneNumber } = req.body;
 
     // Check if tournament exists
     const tournament = await Tournament.findById(tournamentId);
@@ -26,6 +26,21 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Team already registered for this tournament' });
     }
 
+    // Get phone number from team leader if not provided
+    let finalPhoneNumber = phoneNumber;
+    if (!finalPhoneNumber && teamId) {
+      const Team = require('../models/Team');
+      const team = await Team.findById(teamId);
+      if (team && team.members && team.members.length > 0) {
+        const teamLeaderIndex = team.teamLeader || 0;
+        finalPhoneNumber = team.members[teamLeaderIndex]?.phoneNumber || '';
+      }
+    }
+
+    if (!paymentProof || !paymentProof.trim()) {
+      return res.status(400).json({ error: 'Payment proof image is required' });
+    }
+
     const registration = new TournamentRegistration({
       tournamentId,
       teamId,
@@ -33,7 +48,8 @@ router.post('/', auth, async (req, res) => {
       numberOfPlayers,
       paymentType,
       paymentOption,
-      paymentProof: paymentProof || '',
+      paymentProof: paymentProof.trim(),
+      phoneNumber: finalPhoneNumber || '',
       registeredBy: req.user._id,
       status: 'pending'
     });
@@ -45,13 +61,45 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Get registrations for a tournament (Admin)
-router.get('/tournament/:tournamentId', auth, authorize('admin'), async (req, res) => {
+// Get all registrations (Admin and Accountant)
+router.get('/all', auth, authorize('admin', 'accountant'), async (req, res) => {
+  try {
+    const { status, tournamentId } = req.query;
+    let query = {};
+    
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    if (tournamentId) {
+      query.tournamentId = tournamentId;
+    }
+    
+    const registrations = await TournamentRegistration.find(query)
+      .populate('tournamentId', 'name game matchDate entryFee prizePool')
+      .populate({
+        path: 'teamId',
+        select: 'name members game teamLeader',
+        populate: {
+          path: 'members.userId',
+          select: 'name email phoneNumber'
+        }
+      })
+      .populate('registeredBy', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(registrations);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get registrations for a tournament (Admin and Accountant)
+router.get('/tournament/:tournamentId', auth, authorize('admin', 'accountant'), async (req, res) => {
   try {
     const registrations = await TournamentRegistration.find({ tournamentId: req.params.tournamentId })
       .populate({
         path: 'teamId',
-        select: 'name members game',
+        select: 'name members game teamLeader',
         populate: {
           path: 'members.userId',
           select: 'name email'
@@ -77,8 +125,8 @@ router.get('/my-registrations', auth, async (req, res) => {
   }
 });
 
-// Approve registration (Admin)
-router.put('/:id/approve', auth, authorize('admin'), async (req, res) => {
+// Approve registration (Admin and Accountant)
+router.put('/:id/approve', auth, authorize('admin', 'accountant'), async (req, res) => {
   try {
     const registration = await TournamentRegistration.findById(req.params.id);
     if (!registration) {
@@ -99,8 +147,8 @@ router.put('/:id/approve', auth, authorize('admin'), async (req, res) => {
   }
 });
 
-// Reject registration (Admin)
-router.put('/:id/reject', auth, authorize('admin'), async (req, res) => {
+// Reject registration (Admin and Accountant)
+router.put('/:id/reject', auth, authorize('admin', 'accountant'), async (req, res) => {
   try {
     const { rejectionReason } = req.body;
     const registration = await TournamentRegistration.findById(req.params.id);

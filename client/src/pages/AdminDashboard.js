@@ -13,6 +13,8 @@ import EditTournamentModal from '../components/EditTournamentModal';
 import EditGameModal from '../components/EditGameModal';
 import EditNotificationModal from '../components/EditNotificationModal';
 import EditPaymentOptionModal from '../components/EditPaymentOptionModal';
+import TournamentTypesManagement from '../components/TournamentTypesManagement';
+import HomeImageManagement from '../components/HomeImageManagement';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -53,10 +55,23 @@ const AdminDashboard = () => {
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [selectedRegistration, setSelectedRegistration] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isPaymentProofModalOpen, setIsPaymentProofModalOpen] = useState(false);
+  const [selectedPaymentProof, setSelectedPaymentProof] = useState('');
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab]);
 
   const fetchRegistrations = async (tournamentId) => {
     try {
@@ -85,6 +100,52 @@ const AdminDashboard = () => {
     
     setFilteredRegistrations(filtered);
   }, [statusFilter, paymentFilter, registrations]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      console.log('Fetching users from /api/users...');
+      const response = await api.get('/users');
+      console.log('Response status:', response.status);
+      console.log('Response data:', response.data);
+      
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          console.log(`Successfully fetched ${response.data.length} users`);
+          setUsers(response.data);
+        } else {
+          console.error('Invalid response format - expected array, got:', typeof response.data);
+          setUsers([]);
+        }
+      } else {
+        console.error('No response data received');
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      console.error('Error message:', error.message);
+      setUsers([]);
+      
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+      alert(`Failed to fetch users: ${errorMessage}\n\nCheck browser console for more details.`);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const updateUserRole = async (userId, newRole) => {
+    try {
+      await api.put(`/users/${userId}`, { role: newRole });
+      await fetchUsers(); // Refresh users list
+      alert('User role updated successfully!');
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      alert('Failed to update user role. Please try again.');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -150,6 +211,8 @@ const AdminDashboard = () => {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'tournaments', label: 'Tournaments' },
+    { id: 'tournament-types', label: 'Tournament Types' },
+    { id: 'home-image', label: 'Home Image' },
     { id: 'ongoing', label: 'Ongoing Matches' },
     { id: 'upcoming', label: 'Upcoming Matches' },
     { id: 'registrations', label: 'Registrations' },
@@ -158,6 +221,7 @@ const AdminDashboard = () => {
     { id: 'notifications', label: 'Notifications' },
     { id: 'payments', label: 'Payment Options' },
     { id: 'leaderboard', label: 'Leaderboard' },
+    { id: 'users', label: 'Manage Users' },
     { id: 'contacts', label: 'Contact Queries' },
     { id: 'newsletter', label: 'Newsletter' }
   ];
@@ -402,6 +466,16 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* Tournament Types Tab */}
+        {activeTab === 'tournament-types' && (
+          <TournamentTypesManagement />
+        )}
+
+        {/* Home Image Tab */}
+        {activeTab === 'home-image' && (
+          <HomeImageManagement />
+        )}
+
         {/* Games Tab */}
         {activeTab === 'games' && (
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6">
@@ -638,6 +712,11 @@ const AdminDashboard = () => {
                         <p className="text-sm text-gray-400 mt-1">
                           Players: {reg.numberOfPlayers} • Payment: {reg.paymentType} - {reg.paymentOption}
                         </p>
+                        {reg.phoneNumber && (
+                          <p className="text-sm text-gray-400 mt-1">
+                            📱 Phone: {reg.phoneNumber}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500 mt-1">
                           Registered: {new Date(reg.createdAt).toLocaleString()}
                         </p>
@@ -659,6 +738,17 @@ const AdminDashboard = () => {
                         >
                           View
                         </button>
+                        {reg.paymentProof && (
+                          <button
+                            onClick={() => {
+                              setSelectedPaymentProof(reg.paymentProof);
+                              setIsPaymentProofModalOpen(true);
+                            }}
+                            className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition-colors"
+                          >
+                            View Payment
+                          </button>
+                        )}
                       </div>
                     </div>
                     {reg.status === 'pending' && (
@@ -853,7 +943,132 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Newsletter Tab */}
+        {/* Manage Users Tab */}
+        {activeTab === 'users' && (
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+              <h2 className="text-2xl font-bold text-lava-orange">Manage Users</h2>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                {/* Search Box */}
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1); // Reset to first page on search
+                  }}
+                  className="px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white placeholder-gray-500 focus:outline-none focus:border-lava-orange w-full sm:w-64"
+                />
+                <div className="text-sm text-gray-400 flex items-center">
+                  Total: {users.length} users
+                </div>
+              </div>
+            </div>
+            {loadingUsers ? (
+              <div className="text-center py-8 text-gray-400">Loading users...</div>
+            ) : (() => {
+              // Filter users based on search query
+              const filteredUsers = users.filter(user => {
+                const searchLower = searchQuery.toLowerCase();
+                const name = (user.name || user.username || '').toLowerCase();
+                const email = (user.email || '').toLowerCase();
+                return name.includes(searchLower) || email.includes(searchLower);
+              });
+
+              // Calculate pagination
+              const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+              const startIndex = (currentPage - 1) * usersPerPage;
+              const endIndex = startIndex + usersPerPage;
+              const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+              return (
+                <>
+                  {filteredUsers.length > 0 ? (
+                    <>
+                      <div className="overflow-x-auto mb-4">
+                        <table className="w-full min-w-[600px]">
+                          <thead className="bg-lava-orange/20">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-sm font-bold">Name</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold">Email</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold">Role</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedUsers.map(user => (
+                              <tr key={user._id} className="border-t border-lava-orange/10 hover:bg-lava-orange/5">
+                                <td className="px-4 py-3">
+                                  <div className="font-semibold">{user.name || user.username || 'N/A'}</div>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-300">{user.email}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                    user.role === 'admin' ? 'bg-red-500/20 text-red-400' :
+                                    user.role === 'accountant' ? 'bg-blue-500/20 text-blue-400' :
+                                    'bg-gray-500/20 text-gray-400'
+                                  }`}>
+                                    {user.role || 'user'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <select
+                                    value={user.role || 'user'}
+                                    onChange={(e) => {
+                                      if (window.confirm(`Are you sure you want to change ${user.name || user.email}'s role to ${e.target.value}?`)) {
+                                        updateUserRole(user._id, e.target.value);
+                                      }
+                                    }}
+                                    className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
+                                  >
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="accountant">Accountant</option>
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Pagination */}
+                      {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-2 mt-4">
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white hover:bg-lava-orange hover:text-lava-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Previous
+                          </button>
+                          <span className="text-gray-400 px-4">
+                            Page {currentPage} of {totalPages}
+                          </span>
+                          <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white hover:bg-lava-orange hover:text-lava-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                      <div className="text-sm text-gray-400 mt-2 text-center">
+                        Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      {searchQuery ? 'No users found matching your search' : 'No users found'}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
+
         {activeTab === 'newsletter' && (
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
@@ -1035,6 +1250,12 @@ const AdminDashboard = () => {
                     <p className="text-sm text-gray-400">Number of Players</p>
                     <p className="font-bold">{selectedRegistration.numberOfPlayers}</p>
                   </div>
+                  {selectedRegistration.phoneNumber && (
+                    <div>
+                      <p className="text-sm text-gray-400">Phone Number</p>
+                      <p className="font-bold">{selectedRegistration.phoneNumber}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1043,26 +1264,50 @@ const AdminDashboard = () => {
                 <div className="bg-lava-black border border-lava-orange/20 rounded-lg p-4">
                   <h3 className="text-xl font-bold text-lava-orange mb-3">Players</h3>
                   <div className="space-y-3">
-                    {selectedRegistration.teamId.members.map((member, index) => (
-                      <div key={index} className="bg-charcoal border border-lava-orange/10 rounded-lg p-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <p className="text-sm text-gray-400">Player {index + 1} Name</p>
-                            <p className="font-bold">{member.name}</p>
+                    {selectedRegistration.teamId.members.map((member, index) => {
+                      // Get team leader index (default to 0 if not set)
+                      const teamLeaderIndex = selectedRegistration.teamId.teamLeader !== undefined 
+                        ? selectedRegistration.teamId.teamLeader 
+                        : 0;
+                      const isTeamLeader = index === teamLeaderIndex;
+                      // Phone number should be shown for team leader - get from member or registration
+                      const phoneNumber = member.phoneNumber || (isTeamLeader ? selectedRegistration.phoneNumber : null);
+                      
+                      return (
+                        <div key={index} className="bg-charcoal border border-lava-orange/10 rounded-lg p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-sm font-bold text-lava-orange">Player {index + 1}</p>
+                            {isTeamLeader && (
+                              <span className="bg-lava-orange text-lava-black px-2 py-0.5 rounded text-xs font-bold">
+                                Team Leader
+                              </span>
+                            )}
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-400">Game ID</p>
-                            <p className="font-bold text-lava-orange">{member.gameId}</p>
+                          <div className={`grid gap-3 ${phoneNumber ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                            <div>
+                              <p className="text-sm text-gray-400">Name</p>
+                              <p className="font-bold">{member.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-400">Game ID</p>
+                              <p className="font-bold text-lava-orange">{member.gameId}</p>
+                            </div>
+                            {phoneNumber && (
+                              <div>
+                                <p className="text-sm text-gray-400">Phone Number {isTeamLeader && '(Team Leader)'}</p>
+                                <p className="font-bold">{phoneNumber}</p>
+                              </div>
+                            )}
                           </div>
+                          {member.email && (
+                            <div className="mt-2">
+                              <p className="text-sm text-gray-400">Email</p>
+                              <p className="text-sm">{member.email}</p>
+                            </div>
+                          )}
                         </div>
-                        {member.email && (
-                          <div className="mt-2">
-                            <p className="text-sm text-gray-400">Email</p>
-                            <p className="text-sm">{member.email}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1083,14 +1328,15 @@ const AdminDashboard = () => {
                 {selectedRegistration.paymentProof && (
                   <div className="mt-3">
                     <p className="text-sm text-gray-400 mb-2">Payment Proof</p>
-                    <a 
-                      href={selectedRegistration.paymentProof} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-lava-orange hover:text-fiery-yellow underline"
+                    <button
+                      onClick={() => {
+                        setSelectedPaymentProof(selectedRegistration.paymentProof);
+                        setIsPaymentProofModalOpen(true);
+                      }}
+                      className="px-4 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors"
                     >
                       View Payment Proof
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>
@@ -1128,6 +1374,51 @@ const AdminDashboard = () => {
                 onClick={() => {
                   setIsViewModalOpen(false);
                   setSelectedRegistration(null);
+                }}
+                className="px-6 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Proof Image Modal */}
+      {isPaymentProofModalOpen && selectedPaymentProof && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-lava-orange">Payment Proof</h2>
+              <button
+                onClick={() => {
+                  setIsPaymentProofModalOpen(false);
+                  setSelectedPaymentProof('');
+                }}
+                className="text-gray-400 hover:text-off-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <img 
+                src={selectedPaymentProof} 
+                alt="Payment Proof" 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }}
+              />
+              <div className="hidden text-center py-8 text-gray-400">
+                Failed to load image. <a href={selectedPaymentProof} target="_blank" rel="noopener noreferrer" className="text-lava-orange underline">Open in new tab</a>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => {
+                  setIsPaymentProofModalOpen(false);
+                  setSelectedPaymentProof('');
                 }}
                 className="px-6 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors"
               >

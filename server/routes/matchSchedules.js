@@ -38,7 +38,15 @@ router.get('/my-matches', auth, async (req, res) => {
       status: 'approved'
     }).populate('tournamentId');
 
-    const tournamentIds = registrations.map(r => r.tournamentId._id);
+    // Filter out any registrations where tournamentId is null or not populated
+    const validRegistrations = registrations.filter(r => r.tournamentId && r.tournamentId._id);
+    const tournamentIds = validRegistrations.map(r => r.tournamentId._id);
+
+    // If no valid tournament IDs, return empty array
+    if (tournamentIds.length === 0) {
+      return res.json([]);
+    }
+
     const schedules = await MatchSchedule.find({
       tournamentId: { $in: tournamentIds },
       isActive: true
@@ -46,8 +54,9 @@ router.get('/my-matches', auth, async (req, res) => {
       .populate('tournamentId', 'name game')
       .sort({ matchDate: 1 });
 
-    res.json(schedules);
+    res.json(schedules || []);
   } catch (error) {
+    console.error('Error fetching user match schedules:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -11,6 +11,11 @@ const teamMemberSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  phoneNumber: {
+    type: String,
+    required: false,
+    trim: true
+  },
   email: {
     type: String,
     required: false,
@@ -33,6 +38,11 @@ const teamSchema = new mongoose.Schema({
   captain: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: true
+  },
+  teamLeader: {
+    type: Number,
+    default: 0, // Index of team leader in members array (0 = first member/player 1)
     required: true
   },
   members: {

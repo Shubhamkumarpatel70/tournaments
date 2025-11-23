@@ -6,7 +6,7 @@ const { auth } = require('../middleware/auth');
 // Create a new team
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, members, game } = req.body;
+    const { name, members, game, teamLeader } = req.body;
 
     // Validate members
     if (!members || !Array.isArray(members) || members.length < 1 || members.length > 4) {
@@ -18,6 +18,12 @@ router.post('/', auth, async (req, res) => {
       if (!member.name || !member.gameId) {
         return res.status(400).json({ error: 'All team members must have name and gameId' });
       }
+    }
+    
+    // Validate team leader has phone number
+    const leaderIndex = teamLeader !== undefined ? parseInt(teamLeader) : 0;
+    if (leaderIndex < 0 || leaderIndex >= members.length) {
+      return res.status(400).json({ error: 'Invalid team leader index' });
     }
 
     // Check if user already has an active team
@@ -34,6 +40,7 @@ router.post('/', auth, async (req, res) => {
     const team = new Team({
       name,
       captain: req.user._id,
+      teamLeader: leaderIndex,
       members,
       game
     });
@@ -42,6 +49,22 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(team);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Get all teams (for admin)
+router.get('/all', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin only.' });
+    }
+    const teams = await Team.find()
+      .select('name game status')
+      .sort({ name: 1 });
+    res.json(teams);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -97,7 +120,7 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Only team captain can update the team' });
     }
 
-    const { name, members, game } = req.body;
+    const { name, members, game, teamLeader } = req.body;
 
     if (members) {
       if (!Array.isArray(members) || members.length < 1 || members.length > 4) {
@@ -109,11 +132,35 @@ router.put('/:id', auth, async (req, res) => {
           return res.status(400).json({ error: 'All team members must have name and gameId' });
         }
       }
+      
+      // Validate team leader has phone number if teamLeader is being updated
+      if (teamLeader !== undefined) {
+        const leaderIndex = parseInt(teamLeader);
+        if (leaderIndex >= 0 && leaderIndex < members.length) {
+          if (!members[leaderIndex].phoneNumber || !members[leaderIndex].phoneNumber.trim()) {
+            return res.status(400).json({ error: 'Team leader must have a phone number' });
+          }
+        }
+      } else {
+        // If teamLeader not provided, check existing team leader
+        const leaderIndex = team.teamLeader || 0;
+        if (leaderIndex >= 0 && leaderIndex < members.length) {
+          if (!members[leaderIndex].phoneNumber || !members[leaderIndex].phoneNumber.trim()) {
+            return res.status(400).json({ error: 'Team leader must have a phone number' });
+          }
+        }
+      }
     }
 
     if (name) team.name = name;
     if (members) team.members = members;
     if (game) team.game = game;
+    if (teamLeader !== undefined) {
+      const leaderIndex = parseInt(teamLeader);
+      if (leaderIndex >= 0 && leaderIndex < (members?.length || team.members.length)) {
+        team.teamLeader = leaderIndex;
+      }
+    }
     
     team.updatedAt = Date.now();
     await team.save();

@@ -4,6 +4,7 @@ import api from '../utils/api';
 import Button from '../components/Button';
 import TournamentRegistrationModal from '../components/TournamentRegistrationModal';
 import { useAuth } from '../context/AuthContext';
+import RegistrationCountdown from '../components/RegistrationCountdown';
 
 const Tournaments = () => {
   const [viewMode, setViewMode] = useState('grid');
@@ -201,14 +202,27 @@ const Tournaments = () => {
               {filteredTournaments.map(tournament => (
                 <div key={tournament._id} className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
                   <div className="flex justify-between items-start mb-3 sm:mb-4">
-                    <span className="bg-lava-orange text-lava-black px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
-                      {tournament.game}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="bg-lava-orange text-lava-black px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                        {tournament.game}
+                      </span>
+                      {tournament.tournamentType && (
+                        <span className="bg-fiery-yellow/20 text-fiery-yellow border border-fiery-yellow/40 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold">
+                          {tournament.tournamentType}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-fiery-yellow font-bold text-sm sm:text-base md:text-lg">₹{tournament.prizePool?.toLocaleString()}</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">{tournament.name}</h3>
+                  
+                  {/* Registration Countdown Timer */}
+                  {tournament.registrationDeadline && (
+                    <RegistrationCountdown deadline={tournament.registrationDeadline} />
+                  )}
+                  
                   <div className="space-y-2 mb-3 sm:mb-4 text-xs sm:text-sm text-gray-400">
-                    <p>📅 Date: {new Date(tournament.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                    <p>📅 Date of Match: {new Date(tournament.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                     <p>🎮 Mode: {tournament.mode}</p>
                     <p>💰 Entry: ₹{tournament.entryFee}</p>
                   </div>
@@ -266,26 +280,66 @@ const Tournaments = () => {
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredTournaments.map(tournament => (
-                <div key={tournament._id} className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-4 mb-2">
-                        <span className="bg-lava-orange text-lava-black px-3 py-1 rounded-full text-sm font-bold">
+                <div key={tournament._id} className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow transform hover:scale-[1.02]">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                        <span className="bg-lava-orange text-lava-black px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
                           {tournament.game}
                         </span>
-                        <h3 className="text-2xl font-bold">{tournament.name}</h3>
+                          {tournament.tournamentType && (
+                          <span className="bg-fiery-yellow/20 text-fiery-yellow border border-fiery-yellow/40 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap">
+                            {tournament.tournamentType}
+                          </span>
+                        )}
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold break-words">{tournament.name}</h3>
                       </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                        <span>📅 {new Date(tournament.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                        <span>🎮 {tournament.mode}</span>
-                        <span>💰 Entry: ₹{tournament.entryFee}</span>
-                        <span>👥 {tournament.registeredTeams || 0}/{tournament.maxTeams} teams</span>
+                      
+                      {/* Registration Countdown Timer */}
+                      {tournament.registrationDeadline && (
+                        <div className="mb-2 sm:mb-3">
+                          <RegistrationCountdown deadline={tournament.registrationDeadline} />
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm text-gray-400">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <span>📅</span>
+                          <span className="break-words">Date of Match: {new Date(tournament.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <span>🎮</span>
+                          <span>{tournament.mode}</span>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <span>💰</span>
+                          <span>₹{tournament.entryFee}</span>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <span>👥</span>
+                          <span>{tournament.registeredTeams || 0}/{tournament.maxTeams}</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 sm:mt-3">
+                        <div className="flex justify-between text-xs sm:text-sm mb-1">
+                          <span>Teams Registered</span>
+                          <span>{Math.round(((tournament.registeredTeams || 0) / tournament.maxTeams) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-lava-black rounded-full h-1.5 sm:h-2">
+                          <div 
+                            className="bg-lava-gradient h-1.5 sm:h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(((tournament.registeredTeams || 0) / tournament.maxTeams) * 100, 100)}%` }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="text-fiery-yellow font-bold text-2xl">₹{tournament.prizePool?.toLocaleString()}</span>
+                    <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-start gap-3 sm:gap-2 min-w-[120px] sm:min-w-[140px]">
+                      <div className="text-left lg:text-right">
+                        <div className="text-fiery-yellow font-bold text-lg sm:text-xl md:text-2xl">₹{tournament.prizePool?.toLocaleString()}</div>
+                        <div className="text-xs text-gray-400">Prize Pool</div>
+                      </div>
                       {(() => {
                         const now = new Date();
                         const registrationDeadline = tournament.registrationDeadline ? new Date(tournament.registrationDeadline) : null;
@@ -295,13 +349,13 @@ const Tournaments = () => {
                         
                         if (isCompleted) {
                           return (
-                            <Button variant="secondary" disabled>
+                            <Button variant="secondary" disabled className="w-full lg:w-auto whitespace-nowrap text-xs sm:text-sm">
                               Game Completed
                             </Button>
                           );
                         } else if (isRegistrationClosed || isFull) {
                           return (
-                            <Button variant="secondary" disabled>
+                            <Button variant="secondary" disabled className="w-full lg:w-auto whitespace-nowrap text-xs sm:text-sm">
                               Registration Closed
                             </Button>
                           );
@@ -309,6 +363,7 @@ const Tournaments = () => {
                           return (
                             <Button 
                               variant="primary"
+                              className="w-full lg:w-auto whitespace-nowrap text-xs sm:text-sm"
                               onClick={() => {
                                 if (user) {
                                   setSelectedTournament(tournament);
@@ -318,7 +373,7 @@ const Tournaments = () => {
                                 }
                               }}
                             >
-                              Join
+                              Join Now
                             </Button>
                           );
                         }

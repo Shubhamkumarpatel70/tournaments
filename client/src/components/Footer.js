@@ -86,7 +86,6 @@ const Footer = () => {
           <div>
             <h3 className="text-lava-orange font-bold mb-4">Support</h3>
             <ul className="space-y-2">
-              <li><Link to="/help" className="text-off-white hover:text-lava-orange transition-colors">Help Center</Link></li>
               <li><Link to="/contact" className="text-off-white hover:text-lava-orange transition-colors">Contact Us</Link></li>
               <li><Link to="/rules" className="text-off-white hover:text-lava-orange transition-colors">Rules & Regulations</Link></li>
             </ul>

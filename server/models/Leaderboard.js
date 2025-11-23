@@ -4,7 +4,11 @@ const leaderboardSchema = new mongoose.Schema({
   teamId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Team',
-    required: true
+    required: false // Made optional to support placeholder teams
+  },
+  teamName: {
+    type: String,
+    required: false // Store team name for entries without valid teamId
   },
   tournamentId: {
     type: mongoose.Schema.Types.ObjectId,

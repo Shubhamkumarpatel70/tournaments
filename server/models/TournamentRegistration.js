@@ -32,6 +32,11 @@ const tournamentRegistrationSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  phoneNumber: {
+    type: String,
+    required: false,
+    trim: true
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

@@ -16,7 +16,11 @@ const EditTeamModal = ({ isOpen, onClose, onSuccess, team }) => {
       setFormData({
         name: team.name,
         game: team.game,
-        members: team.members.map(m => ({ name: m.name, gameId: m.gameId }))
+        members: team.members.map(m => ({ 
+          name: m.name, 
+          gameId: m.gameId,
+          phoneNumber: m.phoneNumber || '' 
+        }))
       });
     }
   }, [team]);
@@ -47,13 +51,17 @@ const EditTeamModal = ({ isOpen, onClose, onSuccess, team }) => {
     }
     setFormData(prev => ({
       ...prev,
-      members: [...prev.members, { name: '', gameId: '' }]
+      members: [...prev.members, { name: '', gameId: '', phoneNumber: '' }]
     }));
   };
 
   const removeMember = (index) => {
     if (formData.members.length <= 1) {
       setError('Team must have at least 1 member');
+      return;
+    }
+    if (index === 0) {
+      setError('Cannot remove team leader (Player 1).');
       return;
     }
     setFormData(prev => ({
@@ -73,12 +81,20 @@ const EditTeamModal = ({ isOpen, onClose, onSuccess, team }) => {
       return false;
     }
 
+    // Validate all members have name and gameId
     for (let i = 0; i < formData.members.length; i++) {
       const member = formData.members[i];
       if (!member.name.trim() || !member.gameId.trim()) {
         setError(`Name and Game ID are required for member ${i + 1}`);
         return false;
       }
+    }
+    
+    // Validate team leader (Player 1) has phone number
+    const teamLeader = formData.members[0];
+    if (!teamLeader || !teamLeader.phoneNumber || !teamLeader.phoneNumber.trim()) {
+      setError('Phone number is required for team leader (Player 1)');
+      return false;
     }
 
     return true;
@@ -173,9 +189,14 @@ const EditTeamModal = ({ isOpen, onClose, onSuccess, team }) => {
 
             <div className="space-y-4">
               {formData.members.map((member, index) => (
-                <div key={index} className="bg-lava-black border border-lava-orange/20 rounded-lg p-4">
+                <div key={index} className={`bg-lava-black border rounded-lg p-4 ${index === 0 ? 'border-lava-orange border-2' : 'border-lava-orange/20'}`}>
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-lava-orange">Member {index + 1}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-lava-orange">Player {index + 1}</h3>
+                      {index === 0 && (
+                        <span className="bg-lava-orange text-lava-black px-2 py-0.5 rounded text-xs font-bold">Team Leader</span>
+                      )}
+                    </div>
                     {formData.members.length > 1 && (
                       <button
                         type="button"
@@ -187,7 +208,7 @@ const EditTeamModal = ({ isOpen, onClose, onSuccess, team }) => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={`grid gap-4 ${index === 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
                     <div>
                       <label className="block text-xs font-bold mb-1 text-gray-400">Name *</label>
                       <input
@@ -210,6 +231,19 @@ const EditTeamModal = ({ isOpen, onClose, onSuccess, team }) => {
                         placeholder="Game ID"
                       />
                     </div>
+                    {index === 0 && (
+                      <div>
+                        <label className="block text-xs font-bold mb-1 text-gray-400">Phone Number * (Team Leader)</label>
+                        <input
+                          type="tel"
+                          value={member.phoneNumber || ''}
+                          onChange={(e) => handleMemberChange(index, 'phoneNumber', e.target.value)}
+                          required
+                          className="w-full px-3 py-2 bg-charcoal border border-lava-orange/20 rounded-lg text-off-white focus:outline-none focus:border-lava-orange text-sm"
+                          placeholder="+91 1234567890"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

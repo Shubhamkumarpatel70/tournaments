@@ -6,8 +6,9 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     game: 'BGMI',
+    teamLeader: 0, // Default to player 1 (index 0)
     members: [
-      { name: '', gameId: '' }
+      { name: '', gameId: '', phoneNumber: '' } // Phone number required only for team leader
     ]
   });
   const [error, setError] = useState('');
@@ -39,7 +40,7 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
     }
     setFormData(prev => ({
       ...prev,
-      members: [...prev.members, { name: '', gameId: '' }]
+      members: [...prev.members, { name: '', gameId: '', phoneNumber: '' }] // Phone number optional for non-leaders
     }));
   };
 
@@ -65,12 +66,21 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
       return false;
     }
 
+    // Validate all members have name and gameId
     for (let i = 0; i < formData.members.length; i++) {
       const member = formData.members[i];
       if (!member.name.trim() || !member.gameId.trim()) {
         setError(`Name and Game ID are required for member ${i + 1}`);
         return false;
       }
+    }
+    
+    // Validate team leader has phone number
+    const teamLeaderIndex = formData.teamLeader || 0;
+    const teamLeader = formData.members[teamLeaderIndex];
+    if (!teamLeader || !teamLeader.phoneNumber || !teamLeader.phoneNumber.trim()) {
+      setError('Phone number is required for team leader');
+      return false;
     }
 
     return true;
@@ -100,7 +110,8 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
       setFormData({
         name: '',
         game: 'BGMI',
-        members: [{ name: '', gameId: '' }]
+        teamLeader: 0,
+        members: [{ name: '', gameId: '', phoneNumber: '' }] // Phone number for team leader
       });
       onClose();
     } catch (err) {
@@ -175,6 +186,7 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
             </select>
           </div>
 
+
           {/* Team Members */}
           <div>
             <div className="flex justify-between items-center mb-4">
@@ -192,13 +204,24 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
 
             <div className="space-y-4">
               {formData.members.map((member, index) => (
-                <div key={index} className="bg-lava-black border border-lava-orange/20 rounded-lg p-4">
+                <div key={index} className={`bg-lava-black border rounded-lg p-4 ${index === 0 ? 'border-lava-orange border-2' : 'border-lava-orange/20'}`}>
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-lava-orange">Member {index + 1}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-lava-orange">Player {index + 1}</h3>
+                      {index === 0 && (
+                        <span className="bg-lava-orange text-lava-black px-2 py-0.5 rounded text-xs font-bold">Team Leader</span>
+                      )}
+                    </div>
                     {formData.members.length > 1 && (
                       <button
                         type="button"
-                        onClick={() => removeMember(index)}
+                        onClick={() => {
+                          if (index === 0) {
+                            setError('Cannot remove team leader (Player 1).');
+                            return;
+                          }
+                          removeMember(index);
+                        }}
                         className="text-red-400 hover:text-red-500 text-sm"
                       >
                         Remove
@@ -206,7 +229,7 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={`grid gap-4 ${index === 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
                     <div>
                       <label className="block text-xs font-bold mb-1 text-gray-400">Name *</label>
                       <input
@@ -229,6 +252,19 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
                         placeholder="Game ID"
                       />
                     </div>
+                    {index === 0 && (
+                      <div>
+                        <label className="block text-xs font-bold mb-1 text-gray-400">Phone Number * (Team Leader)</label>
+                        <input
+                          type="tel"
+                          value={member.phoneNumber || ''}
+                          onChange={(e) => handleMemberChange(index, 'phoneNumber', e.target.value)}
+                          required
+                          className="w-full px-3 py-2 bg-charcoal border border-lava-orange/20 rounded-lg text-off-white focus:outline-none focus:border-lava-orange text-sm"
+                          placeholder="+91 1234567890"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -13,6 +13,8 @@ const MatchScheduleModal = ({ isOpen, onClose, onSuccess, schedule, matchSchedul
   });
   const [matchDateInput, setMatchDateInput] = useState(''); // For date picker (YYYY-MM-DDTHH:mm)
   const [tournaments, setTournaments] = useState([]);
+  const [tournamentTypes, setTournamentTypes] = useState([]);
+  const [selectedTournament, setSelectedTournament] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const isEditMode = !!schedule;
@@ -23,29 +25,50 @@ const MatchScheduleModal = ({ isOpen, onClose, onSuccess, schedule, matchSchedul
       if (schedule) {
         // Edit mode - populate form
         const matchDateValue = schedule.matchDate ? new Date(schedule.matchDate).toISOString().slice(0, 16) : '';
+        const tournamentId = schedule.tournamentId?._id || schedule.tournamentId || '';
         setMatchDateInput(matchDateValue);
         setFormData({
-          tournamentId: schedule.tournamentId?._id || schedule.tournamentId || '',
+          tournamentId: tournamentId,
           gameType: schedule.gameType || '',
           gameId: schedule.gameId || '',
           password: schedule.password || '',
-          tournamentType: schedule.tournamentType || 'Squad',
+          tournamentType: schedule.tournamentType || '',
           matchDate: matchDateValue
         });
       } else {
         // Create mode - reset form
         setMatchDateInput('');
+        setSelectedTournament(null);
+        setTournamentTypes([]);
         setFormData({
           tournamentId: '',
           gameType: '',
           gameId: '',
           password: '',
-          tournamentType: 'Squad',
+          tournamentType: '',
           matchDate: ''
         });
       }
     }
   }, [isOpen, schedule]);
+
+  useEffect(() => {
+    // When tournament is selected, fetch tournament types
+    if (formData.tournamentId && tournaments.length > 0) {
+      const tournament = tournaments.find(t => t._id === formData.tournamentId);
+      if (tournament) {
+        setSelectedTournament(tournament);
+        fetchTournamentTypes(tournament.game);
+        // Auto-fill gameType from tournament
+        if (!formData.gameType || formData.gameType !== tournament.game) {
+          setFormData(prev => ({ ...prev, gameType: tournament.game }));
+        }
+      }
+    } else if (!formData.tournamentId) {
+      setSelectedTournament(null);
+      setTournamentTypes([]);
+    }
+  }, [formData.tournamentId, tournaments]);
 
   const fetchTournaments = async () => {
     try {
@@ -53,6 +76,20 @@ const MatchScheduleModal = ({ isOpen, onClose, onSuccess, schedule, matchSchedul
       setTournaments(response.data);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
+    }
+  };
+
+  const fetchTournamentTypes = async (game) => {
+    try {
+      if (!game) {
+        setTournamentTypes([]);
+        return;
+      }
+      const response = await api.get(`/tournament-types?game=${encodeURIComponent(game)}`);
+      setTournamentTypes(response.data || []);
+    } catch (error) {
+      console.error('Error fetching tournament types:', error);
+      setTournamentTypes([]);
     }
   };
 
@@ -164,12 +201,27 @@ const MatchScheduleModal = ({ isOpen, onClose, onSuccess, schedule, matchSchedul
                 value={formData.tournamentType}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+                disabled={!formData.tournamentId || tournamentTypes.length === 0}
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="Solo">Solo</option>
-                <option value="Duo">Duo</option>
-                <option value="Squad">Squad</option>
-                <option value="Custom">Custom</option>
+                <option value="">
+                  {!formData.tournamentId 
+                    ? 'Select Tournament First' 
+                    : tournamentTypes.length === 0 
+                    ? 'Loading tournament types...' 
+                    : 'Select Tournament Type'}
+                </option>
+                {tournamentTypes.map(type => (
+                  <option key={type._id || type.name} value={type.name}>
+                    {type.name}
+                  </option>
+                ))}
+                {/* Ensure current value is in the list even if not in fetched types */}
+                {formData.tournamentType && !tournamentTypes.some(t => t.name === formData.tournamentType) && (
+                  <option value={formData.tournamentType}>
+                    {formData.tournamentType}
+                  </option>
+                )}
               </select>
             </div>
           </div>

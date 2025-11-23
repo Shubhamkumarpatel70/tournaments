@@ -5,6 +5,41 @@ const Transaction = require('../models/Transaction');
 const { auth, authorize } = require('../middleware/auth');
 const { ensureUserHasReferralCode } = require('../utils/referralCodeGenerator');
 
+// Helper function to get frontend URL from request
+const getFrontendUrl = (req) => {
+  // 1. Try to get from request origin (most reliable in production)
+  const origin = req.get('origin') || req.get('referer');
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      return `${url.protocol}//${url.host}`;
+    } catch (e) {
+      // Invalid URL, continue to next option
+    }
+  }
+  
+  // 2. Try environment variable
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL;
+  }
+  
+  // 3. Fallback to localhost only in development
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+  
+  // 4. In production without origin, try to construct from request
+  // This handles cases where the app is served from the same domain
+  const protocol = req.protocol || 'https';
+  const host = req.get('host');
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+  
+  // Last resort: return empty string (shouldn't happen in production)
+  return 'http://localhost:3000';
+};
+
 // Get user's referral code and stats
 router.get('/my-code', auth, async (req, res) => {
   try {
@@ -22,9 +57,23 @@ router.get('/my-code', auth, async (req, res) => {
     // Get user's name for the share message
     const userName = user.name || 'Your friend';
     
+    // Get frontend URL dynamically from request
+    const frontendUrl = getFrontendUrl(req);
+    
+    // Log in production for debugging (remove in production if not needed)
+    if (process.env.NODE_ENV === 'production') {
+      console.log('🔗 Referral link generated:', {
+        frontendUrl,
+        origin: req.get('origin'),
+        referer: req.get('referer'),
+        host: req.get('host'),
+        protocol: req.protocol
+      });
+    }
+    
     // Create share message
     const shareMessage = `${userName} shared a new and exciting opportunity! Click on the link below to know more and join:`;
-    const referralLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/register?ref=${referralCode}`;
+    const referralLink = `${frontendUrl}/register?ref=${referralCode}`;
     // Format for better clickability - put link on separate line with proper spacing (no emoji for cleaner sharing)
     const fullShareText = `${shareMessage}\n\n${referralLink}`;
 

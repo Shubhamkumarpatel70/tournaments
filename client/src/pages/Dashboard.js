@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { userAPI, tournamentAPI } from "../utils/api";
 import api from "../utils/api";
@@ -11,6 +11,7 @@ import InvitationCountdown from "../components/InvitationCountdown";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [myTournaments, setMyTournaments] = useState([]);
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const [userJoinedTournaments, setUserJoinedTournaments] = useState([]);
   const [teamRegistrations, setTeamRegistrations] = useState([]); // Store full registration data with teamId
@@ -54,6 +56,7 @@ const Dashboard = () => {
           teamsResponse,
           schedulesResponse,
           registrationsResponse,
+          walletResponse,
         ] = await Promise.all([
           userAPI.getCurrentUser().catch(err => {
             console.error('Error fetching user:', err);
@@ -75,10 +78,15 @@ const Dashboard = () => {
             console.error('Error fetching registrations:', err);
             return { data: [] };
           }),
+          api.get("/wallet/balance").catch(err => {
+            console.error('Error fetching wallet balance:', err);
+            return { data: { balance: 0 } };
+          }),
         ]);
 
         setStats(userResponse.data?.stats || null);
         setGameIdValue(userResponse.data?.gameId || '');
+        setWalletBalance(walletResponse.data?.balance || 0);
         // Handle both _id and id from API response
         const userId = userResponse.data?._id || userResponse.data?.id || user?._id || user?.id || null;
         setCurrentUserId(userId);
@@ -362,9 +370,9 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Card */}
-        <div className="mb-6 sm:mb-8">
-          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow max-w-md">
+        {/* Stats Cards */}
+        <div className="mb-6 sm:mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl">
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl sm:text-3xl font-bold text-lava-orange mb-2">
@@ -374,6 +382,24 @@ const Dashboard = () => {
               </div>
               <div className="text-3xl sm:text-4xl">👥</div>
             </div>
+          </div>
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="text-2xl sm:text-3xl font-bold text-fiery-yellow mb-2">
+                  ₹{walletBalance.toLocaleString()}
+                </div>
+                <div className="text-gray-400 text-sm sm:text-base">Wallet Balance</div>
+              </div>
+              <div className="text-3xl sm:text-4xl">💰</div>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => navigate('/wallet')}
+              className="mt-4 w-full text-sm"
+            >
+              View Wallet
+            </Button>
           </div>
         </div>
 

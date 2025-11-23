@@ -20,6 +20,9 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AccountantDashboard from './pages/AccountantDashboard';
 import JoinTeam from './pages/JoinTeam';
+import Wallet from './pages/Wallet';
+import AllUserWallets from './pages/AllUserWallets';
+import AllWithdrawalRequests from './pages/AllWithdrawalRequests';
 import './App.css';
 
 function App() {
@@ -51,6 +54,14 @@ function App() {
                 } 
               />
               <Route 
+                path="/wallet" 
+                element={
+                  <ProtectedRoute>
+                    <Wallet />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/join-team/:code" 
                 element={
                   <ProtectedRoute>
@@ -71,6 +82,22 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['accountant', 'admin']}>
                     <AccountantDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/user-wallets" 
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'accountant']}>
+                    <AllUserWallets />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/withdrawal-requests" 
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'accountant']}>
+                    <AllWithdrawalRequests />
                   </ProtectedRoute>
                 } 
               />

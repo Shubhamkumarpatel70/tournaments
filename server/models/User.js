@@ -36,6 +36,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  wallet: {
+    balance: { type: Number, default: 0, min: 0 }
+  },
   stats: {
     wins: { type: Number, default: 0 },
     kills: { type: Number, default: 0 },

@@ -302,102 +302,54 @@ const Home = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 md:pb-24 bg-gradient-to-b from-charcoal via-lava-black to-charcoal relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-48 sm:w-72 h-48 sm:h-72 bg-lava-orange rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-10 w-64 sm:w-96 h-64 sm:h-96 bg-fiery-yellow rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-10 sm:mb-12 md:mb-16 animate-fadeIn">
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 md:pb-24 bg-gradient-to-b from-charcoal via-lava-black to-charcoal">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-10 sm:mb-12 md:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 neon-text-cyan">How It Works</h2>
             <p className="text-gray-300 text-base sm:text-lg md:text-xl max-w-3xl mx-auto px-2 leading-relaxed">
               Join thousands of players competing for massive prize pools. Get started in three simple steps.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 md:gap-12 relative">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 md:gap-12">
             {/* Step 1 */}
-            <div className="text-center relative z-10 group transform transition-all duration-500 hover:-translate-y-2">
-              <div className="relative mb-4 sm:mb-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-gradient-to-br from-lava-orange to-fiery-yellow rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 text-3xl sm:text-4xl md:text-5xl font-bold text-lava-black shadow-lg shadow-lava-orange/50 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-lava-orange/70 transition-all duration-300 relative z-20">
-                  <span className="relative z-10">1</span>
-                  <div className="absolute inset-0 rounded-full bg-lava-orange animate-ping opacity-20"></div>
-                </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-fiery-yellow rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-bounce z-30"></div>
+            <div className="text-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-gradient-to-br from-lava-orange to-fiery-yellow rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl font-bold text-lava-black shadow-lg shadow-lava-orange/50">
+                1
               </div>
-              <div className="bg-lava-black/70 backdrop-blur-sm border border-lava-orange/30 rounded-xl p-4 sm:p-6 group-hover:border-lava-orange group-hover:shadow-2xl group-hover:shadow-lava-orange/50 transition-all duration-300 transform group-hover:scale-105">
-                <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 transform group-hover:scale-110 transition-transform duration-300">📝</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 text-lava-orange group-hover:text-fiery-yellow transition-colors">Register</h3>
+              <div className="bg-lava-black/70 backdrop-blur-sm border border-lava-orange/30 rounded-xl p-4 sm:p-6">
+                <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4">📝</div>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 text-lava-orange">Register</h3>
                 <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
                   Create your account and form your team. Choose your game and get ready to compete.
                 </p>
-                <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-lava-orange font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                  → Get Started
-                </div>
-              </div>
-            </div>
-
-            {/* Connector Line with Circles - From Step 1 to Step 2 */}
-            <div className="hidden md:block absolute top-14 left-[calc(33.333%+3.5rem)] right-[calc(33.333%+3.5rem)] h-1 z-0">
-              <div className="relative h-full">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 bg-lava-orange/30 rounded-full border-2 border-lava-orange/50 backdrop-blur-sm"></div>
-                <div className="h-full w-full bg-gradient-to-r from-lava-orange via-fiery-yellow to-lava-orange opacity-50">
-                  <div className="h-full w-full bg-lava-gradient animate-pulse"></div>
-                </div>
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-8 h-8 bg-lava-orange/30 rounded-full border-2 border-lava-orange/50 backdrop-blur-sm"></div>
               </div>
             </div>
 
             {/* Step 2 */}
-            <div className="text-center relative z-10 group transform transition-all duration-500 hover:-translate-y-2">
-              <div className="relative mb-4 sm:mb-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-gradient-to-br from-lava-orange to-fiery-yellow rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 text-3xl sm:text-4xl md:text-5xl font-bold text-lava-black shadow-lg shadow-lava-orange/50 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-lava-orange/70 transition-all duration-300 relative z-20">
-                  <span className="relative z-10">2</span>
-                  <div className="absolute inset-0 rounded-full bg-lava-orange animate-ping opacity-20"></div>
-                </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-fiery-yellow rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-bounce z-30"></div>
+            <div className="text-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-gradient-to-br from-lava-orange to-fiery-yellow rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl font-bold text-lava-black shadow-lg shadow-lava-orange/50">
+                2
               </div>
-              <div className="bg-lava-black/70 backdrop-blur-sm border border-lava-orange/30 rounded-xl p-4 sm:p-6 group-hover:border-lava-orange group-hover:shadow-2xl group-hover:shadow-lava-orange/50 transition-all duration-300 transform group-hover:scale-105">
-                <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 transform group-hover:scale-110 transition-transform duration-300">⚔️</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 text-lava-orange group-hover:text-fiery-yellow transition-colors">Compete</h3>
+              <div className="bg-lava-black/70 backdrop-blur-sm border border-lava-orange/30 rounded-xl p-4 sm:p-6">
+                <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4">⚔️</div>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 text-lava-orange">Compete</h3>
                 <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
                   Join scheduled matches and tournaments. Show your skills and climb the leaderboard.
                 </p>
-                <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-lava-orange font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                  → Join Tournament
-                </div>
-              </div>
-            </div>
-
-            {/* Connector Line with Circles - From Step 2 to Step 3 */}
-            <div className="hidden md:block absolute top-14 left-[calc(66.666%+3.5rem)] right-[calc(0%+3.5rem)] h-1 z-0">
-              <div className="relative h-full">
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 bg-lava-orange/30 rounded-full border-2 border-lava-orange/50 backdrop-blur-sm"></div>
-                <div className="h-full w-full bg-gradient-to-r from-lava-orange via-fiery-yellow to-lava-orange opacity-50">
-                  <div className="h-full w-full bg-lava-gradient animate-pulse"></div>
-                </div>
               </div>
             </div>
 
             {/* Step 3 */}
-            <div className="text-center relative z-10 group transform transition-all duration-500 hover:-translate-y-2">
-              <div className="relative mb-4 sm:mb-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-gradient-to-br from-lava-orange to-fiery-yellow rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 text-3xl sm:text-4xl md:text-5xl font-bold text-lava-black shadow-lg shadow-lava-orange/50 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-lava-orange/70 transition-all duration-300 relative z-20">
-                  <span className="relative z-10">3</span>
-                  <div className="absolute inset-0 rounded-full bg-lava-orange animate-ping opacity-20"></div>
-                </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-fiery-yellow rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-bounce z-30"></div>
+            <div className="text-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-gradient-to-br from-lava-orange to-fiery-yellow rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 text-3xl sm:text-4xl md:text-5xl font-bold text-lava-black shadow-lg shadow-lava-orange/50">
+                3
               </div>
-              <div className="bg-lava-black/70 backdrop-blur-sm border border-lava-orange/30 rounded-xl p-4 sm:p-6 group-hover:border-lava-orange group-hover:shadow-2xl group-hover:shadow-lava-orange/50 transition-all duration-300 transform group-hover:scale-105">
-                <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 transform group-hover:scale-110 transition-transform duration-300">🏆</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 text-lava-orange group-hover:text-fiery-yellow transition-colors">Win</h3>
+              <div className="bg-lava-black/70 backdrop-blur-sm border border-lava-orange/30 rounded-xl p-4 sm:p-6">
+                <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4">🏆</div>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 text-lava-orange">Win</h3>
                 <p className="text-gray-300 leading-relaxed text-sm sm:text-base">
                   Claim your prizes and earn your place among the champions. Build your reputation and earnings.
                 </p>
-                <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-lava-orange font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                  → Claim Prize
-                </div>
               </div>
             </div>
           </div>

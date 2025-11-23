@@ -57,6 +57,16 @@ const AboutUs = () => {
                 SK
               </div>
               <h3 className="text-2xl font-bold mb-2">Shubham Kumar</h3>
+              <p className="text-lava-orange mb-2">Co-Founder</p>
+              <p className="text-gray-400 text-sm">
+                Passionate gamer and entrepreneur with expertise in esports industry
+              </p>
+            </div>
+            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
+              <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
+                HKD
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Harshit Kumar Dubey</h3>
               <p className="text-lava-orange mb-2">Head of Operations</p>
               <p className="text-gray-400 text-sm">
                 Expert in tournament organization and player management with 3+ years in esports industry
@@ -72,16 +82,7 @@ const AboutUs = () => {
                 Building and nurturing our amazing gaming community
               </p>
             </div>
-            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
-              <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                HKD
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Harshit Kumar Dubey</h3>
-              <p className="text-lava-orange mb-2">Co-Founder</p>
-              <p className="text-gray-400 text-sm">
-                Passionate gamer and entrepreneur with expertise in esports industry
-              </p>
-            </div>
+          
           </div>
         </section>
 

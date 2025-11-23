@@ -177,7 +177,7 @@ const UpcomingMatches = () => {
                         ₹{item.prizePool?.toLocaleString()}
                       </div>
                       <Button variant="primary" className="w-full md:w-auto">
-                        View Details
+                         Join Now
                       </Button>
                     </div>
                   )}

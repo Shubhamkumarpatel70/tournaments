@@ -151,7 +151,7 @@ const Leaderboards = () => {
                     <th className="px-5 sm:px-6 py-4 sm:py-5 text-left text-sm sm:text-base font-bold text-off-white">Team Name</th>
                     <th className="px-5 sm:px-6 py-4 sm:py-5 text-left text-sm sm:text-base font-bold text-off-white">Game</th>
                     <th className="px-5 sm:px-6 py-4 sm:py-5 text-left text-sm sm:text-base font-bold text-off-white">Tournament</th>
-                    <th className="px-5 sm:px-6 py-4 sm:py-5 text-left text-sm sm:text-base font-bold text-off-white">Earnings</th>
+                    <th className="px-5 sm:px-6 py-4 sm:py-5 text-left text-sm sm:text-base font-bold text-off-white">Winings</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -231,7 +231,7 @@ const Leaderboards = () => {
               <div className="text-2xl sm:text-3xl font-bold text-fiery-yellow mb-1">
                 ₹{topTeams.reduce((sum, team) => sum + (team.earnings || 0), 0).toLocaleString('en-IN')}
               </div>
-              <div className="text-sm text-gray-400">Total Earnings</div>
+              <div className="text-sm text-gray-400">Total Winings</div>
             </div>
           </div>
         )}

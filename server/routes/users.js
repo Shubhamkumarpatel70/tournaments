@@ -60,8 +60,18 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update user profile
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
+    // Validate ID format
+    if (!req.params.id || req.params.id === 'undefined' || req.params.id === 'null') {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    // Check if user is updating their own profile or is admin
+    if (req.params.id !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You can only update your own profile' });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -72,6 +82,9 @@ router.put('/:id', async (req, res) => {
     }
     res.json(user);
   } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
     res.status(400).json({ error: error.message });
   }
 });

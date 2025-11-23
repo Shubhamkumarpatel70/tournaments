@@ -7,10 +7,12 @@ import Button from "../components/Button";
 import CreateTeamModal from "../components/CreateTeamModal";
 import TournamentRegistrationModal from "../components/TournamentRegistrationModal";
 import EditTeamModal from "../components/EditTeamModal";
+import InvitationCountdown from "../components/InvitationCountdown";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [myTournaments, setMyTournaments] = useState([]);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -31,6 +33,9 @@ const Dashboard = () => {
   const [showArchive, setShowArchive] = useState(false); // Toggle for archive view
 
   const [loading, setLoading] = useState(true);
+  const [teamInvitations, setTeamInvitations] = useState([]);
+  const [editingGameId, setEditingGameId] = useState(false);
+  const [gameIdValue, setGameIdValue] = useState('');
 
   // Update current time every second for timer
   useEffect(() => {
@@ -73,6 +78,10 @@ const Dashboard = () => {
         ]);
 
         setStats(userResponse.data?.stats || null);
+        setGameIdValue(userResponse.data?.gameId || '');
+        // Handle both _id and id from API response
+        const userId = userResponse.data?._id || userResponse.data?.id || user?._id || user?.id || null;
+        setCurrentUserId(userId);
         
         // Filter to only show active teams - handle both array and object responses
         const teamsData = Array.isArray(teamsResponse.data) ? teamsResponse.data : [];
@@ -219,6 +228,14 @@ const Dashboard = () => {
           }
           setNotifications(notifs);
         }
+        // Fetch team invitations
+        try {
+          const invitationsResponse = await api.get('/team-invitations/my-invitations');
+          setTeamInvitations(invitationsResponse.data || []);
+        } catch (error) {
+          console.error('Error fetching invitations:', error);
+          setTeamInvitations([]);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -345,31 +362,9 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl sm:text-3xl font-bold text-lava-orange mb-2">
-                  {stats?.wins || 0}
-                </div>
-                <div className="text-gray-400 text-sm sm:text-base">Total Wins</div>
-              </div>
-              <div className="text-3xl sm:text-4xl">🏆</div>
-            </div>
-          </div>
-          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl sm:text-3xl font-bold text-fiery-yellow mb-2">
-                  ₹{stats?.totalEarnings?.toLocaleString() || "0"}
-                </div>
-                <div className="text-gray-400 text-sm sm:text-base">Total Earnings</div>
-              </div>
-              <div className="text-3xl sm:text-4xl">💰</div>
-            </div>
-          </div>
-          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow sm:col-span-2 lg:col-span-1">
+        {/* Stats Card */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow max-w-md">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl sm:text-3xl font-bold text-lava-orange mb-2">
@@ -381,6 +376,209 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Game ID Profile Section */}
+        {user && user._id && (
+        <div className="mb-6 sm:mb-8 bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6" data-game-id-section>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-lava-orange mb-2">Your Game ID</h2>
+              <p className="text-gray-400 text-sm mb-2">
+                Your Game ID is required to join teams. This is your in-game username or player ID from BGMI, Free Fire, etc.
+              </p>
+              <div className="bg-lava-black/50 rounded p-3 text-xs text-gray-400">
+                <p className="font-semibold mb-1 text-fiery-yellow">💡 What to enter:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li><strong>BGMI:</strong> Your character name (e.g., "ProGamer", "Player123")</li>
+                  <li><strong>Free Fire:</strong> Your player ID or username (e.g., "FFPlayer", "1234567890")</li>
+                  <li>This is the same ID you use when logging into the game</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {!editingGameId ? (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex-1">
+                {gameIdValue ? (
+                  <div>
+                    <p className="text-gray-400 text-sm mb-1">Current Game ID:</p>
+                    <p className="text-lava-orange font-mono font-bold text-lg">{gameIdValue}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-fiery-yellow font-semibold mb-1">⚠️ Game ID not set</p>
+                    <p className="text-gray-400 text-sm">You need to set your Game ID before joining a team.</p>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => setEditingGameId(true)}
+                className="w-full sm:w-auto"
+              >
+                {gameIdValue ? 'Edit Game ID' : 'Set Game ID'}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-bold mb-2 text-gray-400">Game ID *</label>
+                <input
+                  type="text"
+                  value={gameIdValue}
+                  onChange={(e) => setGameIdValue(e.target.value)}
+                  placeholder="e.g., Player123, MyGameID, 1234567890"
+                  className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter your in-game username or player ID from BGMI, Free Fire, etc. This is the name/ID you use to play the game.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    try {
+                      // Use stored user ID or get from user context (handle both _id and id)
+                      let userId = currentUserId || user?._id || user?.id;
+                      
+                      if (!userId) {
+                        // Fetch from API as fallback
+                        const currentUserResponse = await userAPI.getCurrentUser();
+                        userId = currentUserResponse.data?._id || currentUserResponse.data?.id;
+                        if (userId) {
+                          setCurrentUserId(userId);
+                        }
+                      }
+                      
+                      if (!userId) {
+                        alert('User information not available. Please refresh the page.');
+                        return;
+                      }
+                      
+                      await api.put(`/users/${userId}`, { gameId: gameIdValue.trim() });
+                      setEditingGameId(false);
+                      // Refresh user data
+                      const userResponse = await userAPI.getCurrentUser();
+                      setGameIdValue(userResponse.data?.gameId || '');
+                      const refreshedUserId = userResponse.data?._id || userResponse.data?.id || null;
+                      setCurrentUserId(refreshedUserId);
+                    } catch (error) {
+                      alert(error.response?.data?.error || 'Failed to update Game ID');
+                    }
+                  }}
+                  className="flex-1 sm:flex-none"
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setEditingGameId(false);
+                    // Reset to original value
+                    setGameIdValue(user?.gameId || '');
+                  }}
+                  className="flex-1 sm:flex-none"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+        )}
+
+        {/* Team Invitations */}
+        {teamInvitations.length > 0 && (
+          <div className="mb-6 sm:mb-8 bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-lava-orange mb-4">Team Invitations</h2>
+            <div className="space-y-3">
+              {teamInvitations.map((invitation) => (
+                <div key={invitation._id} className="bg-lava-black border border-lava-orange/20 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-off-white font-semibold">{invitation.teamId?.name || 'Team'}</p>
+                    <p className="text-gray-400 text-sm">Invited by {invitation.invitedBy?.name || 'Unknown'}</p>
+                    {invitation.expiresAt && (
+                      <div className="mt-2">
+                        <InvitationCountdown expiresAt={invitation.expiresAt} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="primary"
+                      onClick={async () => {
+                        try {
+                          // Check if user has Game ID before accepting
+                          if (!user?.gameId || user.gameId.trim() === '') {
+                            const shouldSet = window.confirm(
+                              'You need to set your Game ID before joining a team. Would you like to set it now?'
+                            );
+                            if (shouldSet) {
+                              setEditingGameId(true);
+                              // Scroll to Game ID section
+                              setTimeout(() => {
+                                const gameIdSection = document.querySelector('[data-game-id-section]');
+                                if (gameIdSection) {
+                                  gameIdSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                              }, 100);
+                            }
+                            return;
+                          }
+                          await api.post(`/team-invitations/${invitation._id}/accept`);
+                          // Refresh teams and invitations
+                          const teamsResponse = await api.get("/teams/my-teams");
+                          const activeTeams = teamsResponse.data.filter(team => team.status === 'active');
+                          setMyTeams(activeTeams);
+                          const invitationsResponse = await api.get('/team-invitations/my-invitations');
+                          setTeamInvitations(invitationsResponse.data || []);
+                        } catch (error) {
+                          const errorMsg = error.response?.data?.error || 'Failed to accept invitation';
+                          if (errorMsg.includes('Game ID')) {
+                            const shouldSet = window.confirm(
+                              'You need to set your Game ID before joining a team. Would you like to set it now?'
+                            );
+                            if (shouldSet) {
+                              setEditingGameId(true);
+                              setTimeout(() => {
+                                const gameIdSection = document.querySelector('[data-game-id-section]');
+                                if (gameIdSection) {
+                                  gameIdSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                              }, 100);
+                            }
+                          } else {
+                            alert(errorMsg);
+                          }
+                        }
+                      }}
+                      className="text-xs sm:text-sm"
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={async () => {
+                        try {
+                          await api.post(`/team-invitations/${invitation._id}/reject`);
+                          const invitationsResponse = await api.get('/team-invitations/my-invitations');
+                          setTeamInvitations(invitationsResponse.data || []);
+                        } catch (error) {
+                          alert(error.response?.data?.error || 'Failed to reject invitation');
+                        }
+                      }}
+                      className="text-xs sm:text-sm"
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Upcoming Matches */}
@@ -846,7 +1044,7 @@ const Dashboard = () => {
                                   </p>
                                   {registration.rejectionReason && (
                                     <p className="text-red-400">
-                                      ❌ Rejection Reason: {registration.rejectionReason}
+                                      ❌ Reason: {registration.rejectionReason}
                                     </p>
                                   )}
                                 </div>

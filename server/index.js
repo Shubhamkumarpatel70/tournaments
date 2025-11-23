@@ -41,6 +41,7 @@ app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/tournament-registrations', require('./routes/tournamentRegistrations'));
 app.use('/api/match-schedules', require('./routes/matchSchedules'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/team-invitations', require('./routes/teamInvitations'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/payment-options', require('./routes/paymentOptions'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));

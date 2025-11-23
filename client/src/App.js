@@ -19,6 +19,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AccountantDashboard from './pages/AccountantDashboard';
+import JoinTeam from './pages/JoinTeam';
 import './App.css';
 
 function App() {
@@ -46,6 +47,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/join-team/:code" 
+                element={
+                  <ProtectedRoute>
+                    <JoinTeam />
                   </ProtectedRoute>
                 } 
               />

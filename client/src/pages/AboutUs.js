@@ -23,15 +23,15 @@ const AboutUs = () => {
             {/* Statistics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
               <div className="text-center p-4 sm:p-6 bg-lava-black rounded-lg border border-lava-orange/20">
-                <div className="text-3xl sm:text-4xl font-bold text-lava-orange mb-2">500+</div>
+                <div className="text-3xl sm:text-4xl font-bold text-lava-orange mb-2">50+</div>
                 <div className="text-gray-400 text-sm sm:text-base">Tournaments Hosted</div>
               </div>
               <div className="text-center p-4 sm:p-6 bg-lava-black rounded-lg border border-lava-orange/20">
-                <div className="text-3xl sm:text-4xl font-bold text-lava-orange mb-2">10,000+</div>
+                <div className="text-3xl sm:text-4xl font-bold text-lava-orange mb-2">100+</div>
                 <div className="text-gray-400 text-sm sm:text-base">Active Players</div>
               </div>
               <div className="text-center p-4 sm:p-6 bg-lava-black rounded-lg border border-lava-orange/20">
-                <div className="text-3xl sm:text-4xl font-bold text-lava-orange mb-2">₹50L+</div>
+                <div className="text-3xl sm:text-4xl font-bold text-lava-orange mb-2">₹5000+</div>
                 <div className="text-gray-400 text-sm sm:text-base">Prize Money Distributed</div>
               </div>
             </div>
@@ -41,12 +41,12 @@ const AboutUs = () => {
         {/* The Team */}
         <section className="mb-12 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-8 neon-text-cyan">The Team</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
               <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                JD
+                HV
               </div>
-              <h3 className="text-2xl font-bold mb-2">John Doe</h3>
+              <h3 className="text-2xl font-bold mb-2">Harsh Vardhan</h3>
               <p className="text-lava-orange mb-2">Founder & CEO</p>
               <p className="text-gray-400 text-sm">
                 Passionate gamer and entrepreneur with 10+ years in esports industry
@@ -54,22 +54,32 @@ const AboutUs = () => {
             </div>
             <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
               <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                JS
+                SK
               </div>
-              <h3 className="text-2xl font-bold mb-2">Jane Smith</h3>
+              <h3 className="text-2xl font-bold mb-2">Shubham Kumar</h3>
               <p className="text-lava-orange mb-2">Head of Operations</p>
               <p className="text-gray-400 text-sm">
-                Expert in tournament organization and player management
+                Expert in tournament organization and player management with 3+ years in esports industry
               </p>
             </div>
             <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
               <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                MK
+                RK
               </div>
-              <h3 className="text-2xl font-bold mb-2">Mike Kumar</h3>
+              <h3 className="text-2xl font-bold mb-2">Ranjeet Kumar</h3>
               <p className="text-lava-orange mb-2">Community Manager</p>
               <p className="text-gray-400 text-sm">
                 Building and nurturing our amazing gaming community
+              </p>
+            </div>
+            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
+              <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
+                HKD
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Harshit Kumar Dubey</h3>
+              <p className="text-lava-orange mb-2">Co-Founder</p>
+              <p className="text-gray-400 text-sm">
+                Passionate gamer and entrepreneur with expertise in esports industry
               </p>
             </div>
           </div>

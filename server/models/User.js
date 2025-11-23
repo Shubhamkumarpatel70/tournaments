@@ -39,6 +39,25 @@ const userSchema = new mongoose.Schema({
   wallet: {
     balance: { type: Number, default: 0, min: 0 }
   },
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  referralPoints: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  referredUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   stats: {
     wins: { type: Number, default: 0 },
     kills: { type: Number, default: 0 },
@@ -77,6 +96,8 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+// Note: Referral code is generated in the registration route to avoid circular dependency
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {

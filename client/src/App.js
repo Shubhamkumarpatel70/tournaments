@@ -23,6 +23,7 @@ import JoinTeam from './pages/JoinTeam';
 import Wallet from './pages/Wallet';
 import AllUserWallets from './pages/AllUserWallets';
 import AllWithdrawalRequests from './pages/AllWithdrawalRequests';
+import MyReferrals from './pages/MyReferrals';
 import './App.css';
 
 function App() {
@@ -98,6 +99,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin', 'accountant']}>
                     <AllWithdrawalRequests />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/my-referrals" 
+                element={
+                  <ProtectedRoute>
+                    <MyReferrals />
                   </ProtectedRoute>
                 } 
               />

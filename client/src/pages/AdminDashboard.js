@@ -75,6 +75,8 @@ const AdminDashboard = () => {
   const [transactionTotals, setTransactionTotals] = useState({ totalCredited: 0, totalDebited: 0, totalAmount: 0 });
   const [transactionFilters, setTransactionFilters] = useState({ userId: '', type: '', status: '' });
   const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
+  const [referralData, setReferralData] = useState([]);
+  const [referralSearchQuery, setReferralSearchQuery] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -92,6 +94,9 @@ const AdminDashboard = () => {
         fetchWalletData();
       }
       fetchAllTransactions();
+    }
+    if (activeTab === 'referrals') {
+      fetchReferralData();
     }
   }, [activeTab, transactionFilters]);
 
@@ -339,6 +344,64 @@ const AdminDashboard = () => {
     setFilteredRegistrations(filtered);
   }, [statusFilter, paymentFilter, registrations]);
 
+  const fetchReferralData = async () => {
+    try {
+      // Check if user is admin before making the request
+      if (user?.role !== 'admin') {
+        console.error('User is not an admin. Current role:', user?.role);
+        alert(`Access denied. Your current role is "${user?.role || 'unknown'}". You need "admin" role to view this data. Please contact an administrator.`);
+        setReferralData([]);
+        return;
+      }
+
+      console.log('Fetching referral data...');
+      console.log('Current user:', user);
+      console.log('User role:', user?.role);
+      
+      const response = await api.get('/referrals/all');
+      console.log('Referral data response:', response.data);
+      setReferralData(response.data || []);
+    } catch (error) {
+      console.error('Error fetching referral data:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      
+      if (error.response?.status === 403) {
+        const errorMessage = error.response?.data?.error || 'Access denied';
+        const debugInfo = error.response?.data?.debug;
+        
+        console.error('Access denied details:', debugInfo);
+        console.error('Current user role:', user?.role);
+        console.error('Required role: admin');
+        
+        if (user?.role !== 'admin') {
+          alert(`Access denied. Your current role is "${user?.role || 'unknown'}". You need "admin" role to view this data. Please contact an administrator to update your role.`);
+        } else {
+          alert(`Access denied: ${errorMessage}. Please refresh the page and try again. If the issue persists, contact support.`);
+        }
+      } else if (error.response?.status === 401) {
+        alert('Session expired. Please login again.');
+        // Optionally redirect to login
+      } else {
+        alert('Failed to load referral data. Please try again.');
+      }
+      setReferralData([]);
+    }
+  };
+
+  const getFilteredReferralData = () => {
+    if (!referralSearchQuery) return referralData;
+    const searchLower = referralSearchQuery.toLowerCase();
+    return referralData.filter(user => 
+      user.name?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower) ||
+      user.referralCode?.toLowerCase().includes(searchLower) ||
+      user.referredBy?.name?.toLowerCase().includes(searchLower) ||
+      user.referredBy?.email?.toLowerCase().includes(searchLower)
+    );
+  };
+
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
@@ -462,6 +525,7 @@ const AdminDashboard = () => {
     { id: 'users', label: 'Manage Users' },
     { id: 'wallet', label: 'Wallet Management' },
     { id: 'transaction-history', label: 'Transaction History' },
+    { id: 'referrals', label: 'Referrals' },
     { id: 'contacts', label: 'Contact Queries' },
     { id: 'newsletter', label: 'Newsletter' }
   ];
@@ -1665,6 +1729,95 @@ const AdminDashboard = () => {
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Referrals Tab */}
+        {activeTab === 'referrals' && (
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-lava-orange">Referral System</h2>
+              <div className="text-sm text-gray-400">
+                Total Users: {referralData.length}
+              </div>
+            </div>
+            
+            {/* Search */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search by name, email, or referral code..."
+                value={referralSearchQuery}
+                onChange={(e) => setReferralSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+              />
+            </div>
+
+            {getFilteredReferralData().length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-lava-orange/20">
+                    <tr>
+                      <th className="px-4 py-3 text-left">User</th>
+                      <th className="px-4 py-3 text-left">Email</th>
+                      <th className="px-4 py-3 text-left">Referral Code</th>
+                      <th className="px-4 py-3 text-left">Points</th>
+                      <th className="px-4 py-3 text-left">Referred By</th>
+                      <th className="px-4 py-3 text-left">Referred Users</th>
+                      <th className="px-4 py-3 text-left">Joined Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredReferralData().map((user) => (
+                      <tr key={user.id} className="border-t border-lava-orange/10 hover:bg-lava-orange/5">
+                        <td className="px-4 py-3">{user.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-400">{user.email}</td>
+                        <td className="px-4 py-3">
+                          <span className="font-mono text-lava-orange font-bold">{user.referralCode || 'N/A'}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-fiery-yellow font-bold">{user.referralPoints || 0}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {user.referredBy ? (
+                            <div>
+                              <div className="text-off-white">{user.referredBy.name}</div>
+                              <div className="text-gray-500 text-xs">{user.referredBy.email}</div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-lava-orange font-bold">{user.referredCount || 0}</div>
+                          {user.referredUsers && user.referredUsers.length > 0 && (
+                            <details className="mt-1">
+                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-lava-orange">
+                                View Details
+                              </summary>
+                              <div className="mt-2 space-y-1 text-xs">
+                                {user.referredUsers.map((refUser) => (
+                                  <div key={refUser.id} className="text-gray-400">
+                                    {refUser.name} ({refUser.email})
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-400">
+                          {new Date(user.joinedAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-400">
+                {referralSearchQuery ? 'No users found matching your search' : 'No referral data available'}
+              </div>
+            )}
           </div>
         )}
 

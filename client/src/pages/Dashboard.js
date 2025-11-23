@@ -38,6 +38,9 @@ const Dashboard = () => {
   const [teamInvitations, setTeamInvitations] = useState([]);
   const [editingGameId, setEditingGameId] = useState(false);
   const [gameIdValue, setGameIdValue] = useState('');
+  const [referralData, setReferralData] = useState(null);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [convertingPoints, setConvertingPoints] = useState(false);
 
   // Update current time every second for timer
   useEffect(() => {
@@ -57,6 +60,7 @@ const Dashboard = () => {
           schedulesResponse,
           registrationsResponse,
           walletResponse,
+          referralResponse,
         ] = await Promise.all([
           userAPI.getCurrentUser().catch(err => {
             console.error('Error fetching user:', err);
@@ -82,11 +86,16 @@ const Dashboard = () => {
             console.error('Error fetching wallet balance:', err);
             return { data: { balance: 0 } };
           }),
+          api.get("/referrals/my-code").catch(err => {
+            console.error('Error fetching referral data:', err);
+            return { data: null };
+          }),
         ]);
 
         setStats(userResponse.data?.stats || null);
         setGameIdValue(userResponse.data?.gameId || '');
         setWalletBalance(walletResponse.data?.balance || 0);
+        setReferralData(referralResponse.data);
         // Handle both _id and id from API response
         const userId = userResponse.data?._id || userResponse.data?.id || user?._id || user?.id || null;
         setCurrentUserId(userId);
@@ -371,7 +380,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="mb-6 sm:mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl">
+        <div className="mb-6 sm:mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
             <div className="flex items-center justify-between">
               <div>
@@ -401,7 +410,203 @@ const Dashboard = () => {
               View Wallet
             </Button>
           </div>
+          {referralData && (
+            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 hover:border-lava-orange transition-all hover:shadow-lava-glow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex-1">
+                  <div className="text-xl sm:text-2xl font-bold text-fiery-yellow mb-1 font-mono">
+                    {referralData.referralCode || 'N/A'}
+                  </div>
+                  <div className="text-gray-400 text-xs sm:text-sm">Referral Code</div>
+                </div>
+                <div className="text-3xl sm:text-4xl">🎁</div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Points:</span>
+                  <span className="text-lava-orange font-bold">{referralData.referralPoints || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Referrals:</span>
+                  <span className="text-off-white font-bold">{referralData.referredCount || 0}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (referralData.referralLink) {
+                      // Use share message if available, otherwise use default
+                      const shareMessage = referralData.shareMessage || 'Your friend shared a new and exciting opportunity! Click on the link below to know more and join:';
+                      // Use fullShareText from backend which has proper formatting (message + link on new line)
+                      const shareText = referralData.fullShareText || `${shareMessage}\n\n${referralData.referralLink}`;
+                      
+                      // Try to use Web Share API if available
+                      if (navigator.share) {
+                        try {
+                          // Use fullShareText which includes the message and link on separate lines
+                          // The URL parameter ensures the link is clickable in native share dialogs
+                          await navigator.share({
+                            title: 'Join me on Tournament Platform!',
+                            text: shareText,  // Full text with message and link on separate lines
+                            url: referralData.referralLink  // This makes the link clickable in native share
+                          });
+                        } catch (err) {
+                          // User cancelled or error - fallback to clipboard
+                          if (err.name !== 'AbortError') {
+                            navigator.clipboard.writeText(shareText);
+                            alert('Share text copied! Paste it to share with your friends!');
+                          }
+                        }
+                      } else {
+                        // Fallback to clipboard
+                        navigator.clipboard.writeText(shareText);
+                        alert('Share text copied! Paste it to share with your friends!');
+                      }
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                >
+                  Share Link
+                </button>
+                  <button
+                    onClick={() => {
+                      if (referralData.referralCode) {
+                        navigator.clipboard.writeText(referralData.referralCode);
+                        alert('Referral code copied!');
+                      }
+                    }}
+                    className="px-3 py-2 bg-charcoal border border-lava-orange/30 text-lava-orange text-xs font-bold rounded hover:border-lava-orange transition-colors"
+                    title="Copy Code"
+                  >
+                    📋
+                  </button>
+                </div>
+                {referralData.referredCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate('/my-referrals')}
+                    className="w-full text-xs"
+                  >
+                    View My Referrals ({referralData.referredCount})
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Refer and Earn Section */}
+        {referralData && (
+          <div className="mb-6 sm:mb-8 bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-lava-orange mb-4">🎁 Refer and Earn</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="bg-lava-black/50 rounded-lg p-4">
+                <p className="text-gray-400 text-sm mb-2">Your Referral Code</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold text-fiery-yellow font-mono">{referralData.referralCode}</p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(referralData.referralCode);
+                      alert('Referral code copied!');
+                    }}
+                    className="px-3 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <div className="bg-lava-black/50 rounded-lg p-4">
+                <p className="text-gray-400 text-sm mb-2">Referral Points</p>
+                <p className="text-2xl font-bold text-lava-orange">{referralData.referralPoints || 0} Points</p>
+                <p className="text-xs text-gray-500 mt-1">100 Points = ₹20 | 1 Referral = 100 Points</p>
+              </div>
+            </div>
+            <div className="bg-lava-black/50 rounded-lg p-4 mb-4">
+              <p className="text-gray-400 text-sm mb-2">Your Referral Link</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={referralData.referralLink || ''}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-lava-black border border-lava-orange/30 rounded text-off-white text-sm"
+                />
+                <button
+                  onClick={async () => {
+                    if (referralData.referralLink) {
+                      // Use share message if available, otherwise use default
+                      const shareMessage = referralData.shareMessage || 'Your friend shared a new and exciting opportunity! Click on the link below to know more and join:';
+                      // Use fullShareText from backend which has proper formatting (message + link on new line)
+                      const shareText = referralData.fullShareText || `${shareMessage}\n\n${referralData.referralLink}`;
+                      
+                      // Try to use Web Share API if available
+                      if (navigator.share) {
+                        try {
+                          // Use fullShareText which includes the message and link on separate lines
+                          // The URL parameter ensures the link is clickable in native share dialogs
+                          await navigator.share({
+                            title: 'Join me on Tournament Platform!',
+                            text: shareText,  // Full text with message and link on separate lines
+                            url: referralData.referralLink  // This makes the link clickable in native share
+                          });
+                        } catch (err) {
+                          // User cancelled or error - fallback to clipboard
+                          if (err.name !== 'AbortError') {
+                            navigator.clipboard.writeText(shareText);
+                            alert('Share text copied! Paste it to share with your friends!');
+                          }
+                        }
+                      } else {
+                        // Fallback to clipboard
+                        navigator.clipboard.writeText(shareText);
+                        alert('Share text copied! Paste it to share with your friends!');
+                      }
+                    }
+                  }}
+                  className="px-3 py-2 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                >
+                  Copy Link
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 bg-lava-black/50 rounded-lg p-3">
+                <p className="text-gray-400 text-xs mb-1">Total Referrals</p>
+                <p className="text-xl font-bold text-off-white">{referralData.referredCount || 0}</p>
+              </div>
+              {referralData.referralPoints > 0 && (
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    const rupeesToAdd = ((referralData.referralPoints || 0) / 100) * 20;
+                    if (window.confirm(`Convert ${referralData.referralPoints} points to ₹${rupeesToAdd.toFixed(2)} in your wallet?`)) {
+                      setConvertingPoints(true);
+                      try {
+                        const response = await api.post('/referrals/convert-points');
+                        alert(`Successfully converted ${response.data.pointsConverted} points to ₹${response.data.rupeesAdded.toFixed(2)} in wallet!`);
+                        // Refresh wallet balance and referral data
+                        const [walletRes, referralRes] = await Promise.all([
+                          api.get("/wallet/balance"),
+                          api.get("/referrals/my-code")
+                        ]);
+                        setWalletBalance(walletRes.data?.balance || 0);
+                        setReferralData(referralRes.data);
+                      } catch (error) {
+                        alert(error.response?.data?.error || 'Failed to convert points');
+                      } finally {
+                        setConvertingPoints(false);
+                      }
+                    }
+                  }}
+                  disabled={convertingPoints}
+                  className="w-full sm:w-auto"
+                >
+                  {convertingPoints ? 'Converting...' : `Convert to Wallet (₹${((referralData.referralPoints || 0) / 100 * 20).toFixed(2)})`}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Game ID Profile Section */}
         {user && user._id && (

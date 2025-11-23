@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 
 const Register = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [searchParams] = useSearchParams();
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', referralCode: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  // Auto-fill referral code from URL parameter
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setFormData(prev => ({ ...prev, referralCode: refCode }));
+    }
+  }, [searchParams]);
 
   const handleChange = (e) => {
     setFormData({
@@ -35,7 +44,12 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await register(formData.name, formData.email, formData.password);
+      await register(
+        formData.name, 
+        formData.email, 
+        formData.password,
+        formData.referralCode || null
+      );
       // Redirect to login after successful registration
       navigate('/login', { state: { message: 'Registration successful! Please login.' } });
     } catch (err) {
@@ -109,6 +123,21 @@ const Register = () => {
                 className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
                 placeholder="••••••••"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold mb-2">Referral Code (Optional)</label>
+              <input
+                type="text"
+                name="referralCode"
+                value={formData.referralCode}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+                placeholder="Enter referral code"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Have a referral code? Enter it here to earn rewards!
+              </p>
             </div>
 
             <Button type="submit" variant="primary" className="w-full" disabled={loading}>

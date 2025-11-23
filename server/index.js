@@ -43,6 +43,7 @@ app.use('/api/match-schedules', require('./routes/matchSchedules'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/team-invitations', require('./routes/teamInvitations'));
 app.use('/api/wallet', require('./routes/wallet'));
+app.use('/api/referrals', require('./routes/referrals'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/payment-options', require('./routes/paymentOptions'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));

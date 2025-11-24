@@ -69,7 +69,15 @@ const Wallet = () => {
       return;
     }
 
-    if (parseFloat(withdrawForm.amount) > balance) {
+    const withdrawAmount = parseFloat(withdrawForm.amount);
+    
+    // Minimum withdrawal amount: ₹100
+    if (withdrawAmount < 100) {
+      alert('Minimum withdrawal amount is ₹100');
+      return;
+    }
+
+    if (withdrawAmount > balance) {
       alert('Insufficient wallet balance');
       return;
     }
@@ -307,11 +315,14 @@ const Wallet = () => {
             <Button
               variant="primary"
               onClick={() => setShowWithdrawModal(true)}
-              disabled={balance <= 0}
+              disabled={balance < 100}
               className="w-full sm:w-auto"
             >
               Request Withdrawal
             </Button>
+            {balance > 0 && balance < 100 && (
+              <p className="text-xs text-gray-400 mt-2">Minimum ₹100 required to withdraw</p>
+            )}
           </div>
         </div>
 
@@ -336,19 +347,31 @@ const Wallet = () => {
                     console.warn('Transaction missing type:', transaction);
                   }
                   
+                  // Check if this is a reversal transaction
+                  const isReversal = transaction.description?.toLowerCase().includes('reversal:') || transaction.relatedTransactionId;
+                  
                   return (
                     <div
                       key={transaction._id}
-                      className="bg-lava-black/50 border border-lava-orange/20 rounded-lg p-3 sm:p-4 md:p-5 hover:border-lava-orange/50 transition-all"
+                      className={`bg-lava-black/50 border rounded-lg p-3 sm:p-4 md:p-5 hover:border-lava-orange/50 transition-all ${
+                        isReversal ? 'border-blue-500/50 bg-blue-500/5' : 'border-lava-orange/20'
+                      }`}
                     >
                       <div className="flex flex-col gap-3 sm:gap-4">
                         {/* Top Row: Icon, Description, Amount, Status */}
                         <div className="flex items-start justify-between gap-3 sm:gap-4">
                           <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-                            <div className="text-xl sm:text-2xl flex-shrink-0 mt-0.5">{getTypeIcon(transaction.type)}</div>
+                            <div className="text-xl sm:text-2xl flex-shrink-0 mt-0.5">
+                              {isReversal ? '↩️' : getTypeIcon(transaction.type)}
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="font-bold text-off-white mb-1 text-sm sm:text-base break-words">
                                 {transaction.description}
+                                {isReversal && (
+                                  <span className="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30">
+                                    REVERSAL
+                                  </span>
+                                )}
                               </div>
                               <div className="text-xs sm:text-sm text-gray-400">
                                 {new Date(transaction.createdAt).toLocaleString()}
@@ -365,7 +388,7 @@ const Wallet = () => {
                               <div className={`text-xs mt-0.5 sm:mt-1 ${
                                 transaction.type === 'credit' ? 'text-green-400' : 'text-red-400'
                               }`}>
-                                {transaction.type === 'credit' ? 'Credited' : 'Debited'}
+                                {isReversal ? 'Reversed' : (transaction.type === 'credit' ? 'Credited' : 'Debited')}
                               </div>
                             </div>
                             <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${getStatusBadge(transaction.status)}`}>
@@ -376,6 +399,11 @@ const Wallet = () => {
                         
                         {/* Bottom Row: Additional Details */}
                         <div className="flex flex-col gap-1.5 sm:gap-2 pl-7 sm:pl-9 md:pl-11 border-t border-lava-orange/10 pt-2 sm:pt-3">
+                          {isReversal && (
+                            <div className="text-xs sm:text-sm text-blue-400">
+                              <span className="font-semibold">Type:</span> Reversal Transaction - Amount refunded to wallet
+                            </div>
+                          )}
                           {transaction.withdrawalType && (
                             <div className="text-xs sm:text-sm text-gray-500">
                               <span className="font-semibold">Method:</span> {transaction.withdrawalType === 'upi' ? 'UPI' : 'Bank Account'}
@@ -444,14 +472,16 @@ const Wallet = () => {
                   <input
                     type="number"
                     step="0.01"
-                    min="1"
+                    min="100"
                     max={balance}
                     value={withdrawForm.amount}
                     onChange={(e) => setWithdrawForm({ ...withdrawForm, amount: e.target.value })}
                     className="w-full bg-lava-black border border-lava-orange/30 rounded-lg px-4 py-2 text-off-white focus:border-lava-orange focus:outline-none"
                     required
                   />
-                  <p className="text-xs text-gray-400 mt-1">Available: ₹{balance.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Available: ₹{balance.toLocaleString()} | Minimum: ₹100
+                  </p>
                 </div>
 
                 <div>

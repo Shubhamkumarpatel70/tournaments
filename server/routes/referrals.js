@@ -106,7 +106,7 @@ router.get('/stats', auth, async (req, res) => {
 
     const referredUsers = user.referredUsers || [];
     const totalPoints = user.referralPoints || 0;
-    const totalEarnings = (totalPoints / 100) * 20; // 100 points = 20 rupees
+    const totalEarnings = totalPoints / 10; // 10 points = 1 rupee
 
     res.json({
       referralCode: referralCode,
@@ -195,8 +195,15 @@ router.post('/convert-points', auth, async (req, res) => {
       return res.status(400).json({ error: 'No points available to convert' });
     }
 
-    // Convert points to wallet (100 points = 20 rupees)
-    const rupeesToAdd = (pointsToConvert / 100) * 20;
+    // Convert points to wallet (10 points = 1 rupee)
+    const rupeesToAdd = pointsToConvert / 10;
+    
+    // Minimum withdrawal amount: ₹100 (1000 points)
+    if (rupeesToAdd < 100) {
+      return res.status(400).json({ 
+        error: `Minimum withdrawal amount is ₹100. You need ${1000 - pointsToConvert} more points to withdraw.` 
+      });
+    }
     user.wallet.balance = (user.wallet.balance || 0) + rupeesToAdd;
 
     // Create transaction record

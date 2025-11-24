@@ -519,7 +519,7 @@ const Dashboard = () => {
               <div className="bg-lava-black/50 rounded-lg p-4">
                 <p className="text-gray-400 text-sm mb-2">Referral Points</p>
                 <p className="text-2xl font-bold text-lava-orange">{referralData.referralPoints || 0} Points</p>
-                <p className="text-xs text-gray-500 mt-1">100 Points = ₹20 | 1 Referral = 100 Points</p>
+                <p className="text-xs text-gray-500 mt-1">10 Points = ₹1 | 1 Referral = 100 Points | Minimum ₹100 to withdraw</p>
               </div>
             </div>
             <div className="bg-lava-black/50 rounded-lg p-4 mb-4">
@@ -578,7 +578,11 @@ const Dashboard = () => {
                 <Button
                   variant="primary"
                   onClick={async () => {
-                    const rupeesToAdd = ((referralData.referralPoints || 0) / 100) * 20;
+                    const rupeesToAdd = (referralData.referralPoints || 0) / 10;
+                    if (rupeesToAdd < 100) {
+                      alert(`Minimum withdrawal amount is ₹100. You need ${1000 - (referralData.referralPoints || 0)} more points to withdraw.`);
+                      return;
+                    }
                     if (window.confirm(`Convert ${referralData.referralPoints} points to ₹${rupeesToAdd.toFixed(2)} in your wallet?`)) {
                       setConvertingPoints(true);
                       try {
@@ -601,7 +605,7 @@ const Dashboard = () => {
                   disabled={convertingPoints}
                   className="w-full sm:w-auto"
                 >
-                  {convertingPoints ? 'Converting...' : `Convert to Wallet (₹${((referralData.referralPoints || 0) / 100 * 20).toFixed(2)})`}
+                  {convertingPoints ? 'Converting...' : `Convert to Wallet (₹${((referralData.referralPoints || 0) / 10).toFixed(2)})`}
                 </Button>
               )}
             </div>

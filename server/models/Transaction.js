@@ -58,6 +58,12 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // Link to related transaction (e.g., reversal transaction)
+  relatedTransactionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Transaction',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

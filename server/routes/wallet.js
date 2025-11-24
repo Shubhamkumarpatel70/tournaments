@@ -112,6 +112,11 @@ router.post('/withdraw', auth, async (req, res) => {
       return res.status(400).json({ message: 'Invalid withdrawal amount' });
     }
 
+    // Minimum withdrawal amount: ₹100
+    if (amount < 100) {
+      return res.status(400).json({ message: 'Minimum withdrawal amount is ₹100' });
+    }
+
     if (!withdrawalType || !['upi', 'bank_account'].includes(withdrawalType)) {
       return res.status(400).json({ message: 'Invalid withdrawal type' });
     }
@@ -251,7 +256,23 @@ router.put('/withdrawal/:transactionId', auth, authorize('admin', 'accountant'),
       }
       await transaction.save();
 
-      res.json({ message: 'Withdrawal rejected and amount refunded', transaction });
+      // Create reversal credit transaction to show refund in transaction history
+      const reversalTransaction = new Transaction({
+        userId: transaction.userId._id,
+        type: 'credit',
+        amount: transaction.amount,
+        description: `Reversal: Withdrawal request rejected - ${rejectionReason.trim()}`,
+        status: 'completed',
+        processedBy: req.user._id,
+        relatedTransactionId: transaction._id
+      });
+      await reversalTransaction.save();
+
+      res.json({ 
+        message: 'Withdrawal rejected and amount refunded', 
+        transaction,
+        reversalTransaction 
+      });
     }
   } catch (error) {
     console.error('Error processing withdrawal request:', error);

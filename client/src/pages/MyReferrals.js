@@ -88,7 +88,7 @@ const MyReferrals = () => {
                   </div>
                   <div className="text-gray-400 text-sm">Points Earned</div>
                   <div className="text-xs text-gray-500 mt-1">
-                    (₹{(((referralData.referredCount || 0) * 100) / 100 * 20).toFixed(2)})
+                    (₹{(((referralData.referredCount || 0) * 100) / 10).toFixed(2)})
                   </div>
                 </div>
               </div>

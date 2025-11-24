@@ -65,7 +65,14 @@ const AboutUs = () => {
   const fetchTeamMembers = async () => {
     try {
       const res = await api.get('/teams');
-      setTeamMembers(res.data || []);
+      // Sort by order in descending order (higher order first, then by createdAt descending)
+      const sorted = (res.data || []).sort((a, b) => {
+        if (b.order !== a.order) {
+          return b.order - a.order; // Descending order
+        }
+        return new Date(b.createdAt) - new Date(a.createdAt); // Newer first if same order
+      });
+      setTeamMembers(sorted);
     } catch (error) {
       console.error('Error fetching team members:', error);
       setTeamMembers([]);

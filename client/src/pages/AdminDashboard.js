@@ -1743,13 +1743,19 @@ const AdminDashboard = () => {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              transaction.type === 'credit' 
-                                ? 'bg-green-500/20 text-green-400' 
-                                : 'bg-red-500/20 text-red-400'
-                            }`}>
-                              {transaction.type === 'credit' ? 'Credit' : 'Debit'}
-                            </span>
+                            {(() => {
+                              const isReversal = transaction.description?.toLowerCase().includes('reversal:') || transaction.relatedTransactionId;
+                              const displayType = isReversal && transaction.type === 'credit' ? 'r-credit' : (transaction.type === 'credit' ? 'Credit' : 'Debit');
+                              return (
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                  transaction.type === 'credit' 
+                                    ? 'bg-green-500/20 text-green-400' 
+                                    : 'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {displayType}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3">
                             <div className={`font-bold ${

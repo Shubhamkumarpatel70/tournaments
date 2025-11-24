@@ -101,17 +101,18 @@ const UpcomingMatches = () => {
                       <div>
                         <p className="text-gray-400 text-sm mb-1">📅 Date & Time</p>
                         <p className="text-off-white font-semibold">
-                          {new Date(item.displayDate || item.matchDate || item.date).toLocaleString(
-                            "en-US",
-                            {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            }
-                          )}
+                          {(() => {
+                            const date = new Date(item.displayDate || item.matchDate || item.date);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            const time = date.toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            });
+                            return `${day}-${month}-${year}, ${time}`;
+                          })()}
                         </p>
                       </div>
                       

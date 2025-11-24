@@ -91,6 +91,10 @@ const userSchema = new mongoose.Schema({
     position: Number,
     prize: Number
   }],
+  isTerminated: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

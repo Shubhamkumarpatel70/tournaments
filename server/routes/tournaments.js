@@ -116,14 +116,22 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
       return res.status(400).json({ error: 'All required fields must be provided' });
     }
 
+    const parsedMatchDate = parseDate(matchDate);
+    const parsedRegistrationDeadline = parseDate(registrationDeadline);
+    
+    // Validate registration deadline is before match date (allowing same date but time must be before)
+    if (parsedRegistrationDeadline >= parsedMatchDate) {
+      return res.status(400).json({ error: 'Registration deadline must be before match start time' });
+    }
+
     const tournament = new Tournament({
       name,
       game,
       tournamentType,
       mode,
       date: parseDate(date),
-      matchDate: parseDate(matchDate),
-      registrationDeadline: parseDate(registrationDeadline),
+      matchDate: parsedMatchDate,
+      registrationDeadline: parsedRegistrationDeadline,
       entryFee,
       prizePool,
       playerSpots,
@@ -178,6 +186,22 @@ router.put('/:id', async (req, res) => {
     }
     if (updateData.registrationDeadline && typeof updateData.registrationDeadline === 'string') {
       updateData.registrationDeadline = parseDate(updateData.registrationDeadline);
+    }
+    
+    // Validate registration deadline is before match date
+    // Get existing tournament to compare if only one date is being updated
+    const existingTournament = await Tournament.findById(req.params.id);
+    if (!existingTournament) {
+      return res.status(404).json({ error: 'Tournament not found' });
+    }
+    
+    const finalMatchDate = updateData.matchDate || existingTournament.matchDate;
+    const finalRegistrationDeadline = updateData.registrationDeadline || existingTournament.registrationDeadline;
+    
+    if (finalRegistrationDeadline && finalMatchDate) {
+      if (finalRegistrationDeadline >= finalMatchDate) {
+        return res.status(400).json({ error: 'Registration deadline must be before match start time' });
+      }
     }
     
     const tournament = await Tournament.findByIdAndUpdate(

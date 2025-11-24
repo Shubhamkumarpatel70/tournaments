@@ -14,6 +14,7 @@ import EditGameModal from '../components/EditGameModal';
 import EditNotificationModal from '../components/EditNotificationModal';
 import EditPaymentOptionModal from '../components/EditPaymentOptionModal';
 import TournamentTypesManagement from '../components/TournamentTypesManagement';
+import ModeTypesManagement from '../components/ModeTypesManagement';
 import HomeImageManagement from '../components/HomeImageManagement';
 
 const AdminDashboard = () => {
@@ -77,6 +78,9 @@ const AdminDashboard = () => {
   const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
   const [referralData, setReferralData] = useState([]);
   const [referralSearchQuery, setReferralSearchQuery] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -448,6 +452,41 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    
+    setDeletingUser(true);
+    try {
+      await api.delete(`/users/${userToDelete._id}`);
+      await fetchUsers(); // Refresh users list
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      alert('User deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert(error.response?.data?.error || 'Failed to delete user. Please try again.');
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
+  const handleTerminateToggle = async (user) => {
+    try {
+      const newTerminatedStatus = !user.isTerminated;
+      await api.put(`/users/${user._id}/terminate`, { isTerminated: newTerminatedStatus });
+      await fetchUsers(); // Refresh users list
+      alert(newTerminatedStatus ? 'User terminated successfully!' : 'User termination removed successfully!');
+    } catch (error) {
+      console.error('Error toggling user termination:', error);
+      alert('Failed to update user termination status. Please try again.');
+    }
+  };
+
   const fetchData = async () => {
     try {
       const [tournamentsRes, gamesRes, notificationsRes, paymentOptionsRes, usersRes, schedulesRes, contactsRes, newsletterRes] = await Promise.all([
@@ -513,6 +552,7 @@ const AdminDashboard = () => {
     { id: 'overview', label: 'Overview' },
     { id: 'tournaments', label: 'Tournaments' },
     { id: 'tournament-types', label: 'Tournament Types' },
+    { id: 'mode-types', label: 'Mode Types' },
     { id: 'home-image', label: 'Home Image' },
     { id: 'ongoing', label: 'Ongoing Matches' },
     { id: 'upcoming', label: 'Upcoming Matches' },
@@ -661,7 +701,7 @@ const AdminDashboard = () => {
                             {match.tournamentType} • {match.mode}
                           </p>
                           <p className="text-gray-400 text-sm">
-                            📅 Started: {new Date(match.matchDate || match.date).toLocaleString()}
+                            📅 Started: {new Date(match.matchDate || match.date).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                           </p>
                           <p className="text-gray-400 text-sm mt-1">
                             👥 {match.registeredTeams || 0}/{match.maxTeams} teams registered
@@ -720,7 +760,7 @@ const AdminDashboard = () => {
                             <div>
                               <span className="text-gray-400">Match Date:</span>
                               <p className="text-off-white">
-                                {new Date(matchSchedule.matchDate).toLocaleString()}
+                                {new Date(matchSchedule.matchDate).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                               </p>
                             </div>
                           </div>
@@ -753,7 +793,13 @@ const AdminDashboard = () => {
                       <div>
                         <h3 className="font-bold text-lg">{match.name}</h3>
                         <p className="text-gray-400 text-sm">
-                          {match.game} • {new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          {match.game} • {(() => {
+                            const date = new Date(match.matchDate);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            return `${day}-${month}-${year}`;
+                          })()}
                         </p>
                       </div>
                       <div className="text-right">
@@ -773,6 +819,11 @@ const AdminDashboard = () => {
         {/* Tournament Types Tab */}
         {activeTab === 'tournament-types' && (
           <TournamentTypesManagement />
+        )}
+
+        {/* Mode Types Tab */}
+        {activeTab === 'mode-types' && (
+          <ModeTypesManagement />
         )}
 
         {/* Home Image Tab */}
@@ -1123,7 +1174,13 @@ const AdminDashboard = () => {
                         <h3 className="font-bold">{schedule.tournamentId?.name || 'Tournament'}</h3>
                         <p className="text-gray-400 text-sm">
                           {schedule.gameType} • {schedule.tournamentType} • 
-                          {new Date(schedule.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          {(() => {
+                            const date = new Date(schedule.matchDate);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            return `${day}-${month}-${year}`;
+                          })()}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           Game ID: {schedule.gameId} • Password: {schedule.password}
@@ -1297,6 +1354,7 @@ const AdminDashboard = () => {
                               <th className="px-4 py-3 text-left text-sm font-bold">Name</th>
                               <th className="px-4 py-3 text-left text-sm font-bold">Email</th>
                               <th className="px-4 py-3 text-left text-sm font-bold">Role</th>
+                              <th className="px-4 py-3 text-left text-sm font-bold">Status</th>
                               <th className="px-4 py-3 text-left text-sm font-bold">Actions</th>
                             </tr>
                           </thead>
@@ -1307,15 +1365,6 @@ const AdminDashboard = () => {
                                   <div className="font-semibold">{user.name || user.username || 'N/A'}</div>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-300">{user.email}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                    user.role === 'admin' ? 'bg-red-500/20 text-red-400' :
-                                    user.role === 'accountant' ? 'bg-blue-500/20 text-blue-400' :
-                                    'bg-gray-500/20 text-gray-400'
-                                  }`}>
-                                    {user.role || 'user'}
-                                  </span>
-                                </td>
                                 <td className="px-4 py-3">
                                   <select
                                     value={user.role || 'user'}
@@ -1330,6 +1379,39 @@ const AdminDashboard = () => {
                                     <option value="admin">Admin</option>
                                     <option value="accountant">Accountant</option>
                                   </select>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                    user.isTerminated ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
+                                  }`}>
+                                    {user.isTerminated ? 'Terminated' : 'Active'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={user.isTerminated || false}
+                                          onChange={() => handleTerminateToggle(user)}
+                                          className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-lava-orange/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                                        <span className="ml-2 text-xs text-gray-300">
+                                          Terminate
+                                        </span>
+                                      </label>
+                                    </div>
+                                    {user.role !== 'admin' && (
+                                      <button
+                                        onClick={() => handleDeleteClick(user)}
+                                        className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition-colors w-fit"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -1806,7 +1888,13 @@ const AdminDashboard = () => {
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-400">
-                          {new Date(user.joinedAt).toLocaleDateString()}
+                          {(() => {
+                            const date = new Date(user.joinedAt);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            return `${day}-${month}-${year}`;
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -1845,7 +1933,13 @@ const AdminDashboard = () => {
                       <tr key={subscriber._id} className="border-t border-lava-orange/10 hover:bg-lava-orange/5">
                         <td className="px-4 py-3">{subscriber.email}</td>
                         <td className="px-4 py-3 text-sm text-gray-400">
-                          {new Date(subscriber.subscribedAt).toLocaleDateString()}
+                          {(() => {
+                            const date = new Date(subscriber.subscribedAt);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            return `${day}-${month}-${year}`;
+                          })()}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded text-xs font-bold ${
@@ -2431,6 +2525,38 @@ const AdminDashboard = () => {
                 className="flex-1 px-4 py-2 bg-transparent text-off-white border-2 border-lava-orange font-bold rounded-lg hover:bg-lava-orange hover:text-lava-black transition-colors"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {showDeleteModal && userToDelete && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 max-w-md w-full">
+            <h2 className="text-2xl font-bold text-lava-orange mb-4">Delete User</h2>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete <span className="font-bold text-off-white">{userToDelete.name || userToDelete.email}</span>? 
+              This action cannot be undone and will permanently remove the user from the database.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deletingUser}
+                className="flex-1 px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deletingUser ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setUserToDelete(null);
+                }}
+                disabled={deletingUser}
+                className="flex-1 px-4 py-2 bg-transparent text-off-white border-2 border-lava-orange font-bold rounded-lg hover:bg-lava-orange hover:text-lava-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                No, Cancel
               </button>
             </div>
           </div>

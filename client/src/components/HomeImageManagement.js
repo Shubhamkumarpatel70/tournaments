@@ -198,7 +198,13 @@ const HomeImageManagement = () => {
                     {image.isActive ? 'Active' : 'Inactive'}
                   </span>
                   <span className="text-xs text-gray-400">
-                    Updated: {new Date(image.updatedAt).toLocaleDateString()}
+                    Updated: {(() => {
+                      const date = new Date(image.updatedAt);
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const year = String(date.getFullYear()).slice(-2);
+                      return `${day}-${month}-${year}`;
+                    })()}
                   </span>
                 </div>
                 <div className="mb-3">

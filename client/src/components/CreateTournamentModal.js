@@ -19,10 +19,11 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     featured: false
   });
   const [dateInput, setDateInput] = useState(''); // For date picker (YYYY-MM-DD)
-  const [matchDateInput, setMatchDateInput] = useState(''); // For date picker (YYYY-MM-DD)
+  const [matchDateInput, setMatchDateInput] = useState(''); // For datetime-local (YYYY-MM-DDTHH:mm)
   const [registrationDeadlineInput, setRegistrationDeadlineInput] = useState(''); // For datetime-local (YYYY-MM-DDTHH:mm)
   const [games, setGames] = useState([]);
   const [tournamentTypes, setTournamentTypes] = useState([]);
+  const [modeTypes, setModeTypes] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +37,7 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
   useEffect(() => {
     if (formData.game) {
       fetchTournamentTypes(formData.game);
+      fetchModeTypes(formData.game);
     }
   }, [formData.game]);
 
@@ -81,6 +83,25 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
+  const fetchModeTypes = async (game = null) => {
+    try {
+      const url = game ? `/mode-types?game=${encodeURIComponent(game)}` : '/mode-types';
+      const response = await api.get(url);
+      setModeTypes(response.data || []);
+      
+      // Auto-select first mode type if available and none selected
+      if (response.data && response.data.length > 0 && !formData.mode) {
+        setFormData(prev => ({
+          ...prev,
+          mode: response.data[0].name
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching mode types:', error);
+      setModeTypes([]);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -89,9 +110,10 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     }));
     setError('');
     
-    // When game changes, fetch tournament types for that game
+    // When game changes, fetch tournament types and mode types for that game
     if (name === 'game') {
       fetchTournamentTypes(value);
+      fetchModeTypes(value);
     }
   };
 
@@ -141,7 +163,7 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
       setMatchDateInput(value);
       setFormData(prev => ({
         ...prev,
-        matchDate: formatDateToDDMMYY(value)
+        matchDate: value // Keep as ISO string for datetime-local
       }));
     } else if (name === 'registrationDeadline') {
       setRegistrationDeadlineInput(value);
@@ -153,8 +175,8 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleDateTextChange = (name, value) => {
-    // User manually typing DD-MM-YY format
-    if (value.match(/^\d{2}-\d{2}-\d{2}$/) || value === '') {
+    // User manually typing DD-MM-YY format (only for date field, not matchDate)
+    if (name === 'date' && (value.match(/^\d{2}-\d{2}-\d{2}$/) || value === '')) {
       setFormData(prev => ({
         ...prev,
         [name]: value
@@ -163,18 +185,10 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
       if (value) {
         const yyyymmdd = formatDateToYYYYMMDD(value);
         if (yyyymmdd) {
-          if (name === 'date') {
-            setDateInput(yyyymmdd);
-          } else if (name === 'matchDate') {
-            setMatchDateInput(yyyymmdd);
-          }
+          setDateInput(yyyymmdd);
         }
       } else {
-        if (name === 'date') {
-          setDateInput('');
-        } else if (name === 'matchDate') {
-          setMatchDateInput('');
-        }
+        setDateInput('');
       }
     }
   };
@@ -187,12 +201,12 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
       return false;
     }
     
-    // Validate registration deadline is before match date
-    if (formData.registrationDeadline) {
+    // Validate registration deadline is before match date (allowing same date but time must be before)
+    if (formData.registrationDeadline && formData.matchDate) {
       const registrationDeadline = new Date(formData.registrationDeadline);
-      const matchDate = new Date(matchDateInput || formatDateToYYYYMMDD(formData.matchDate));
+      const matchDate = new Date(formData.matchDate);
       if (registrationDeadline >= matchDate) {
-        setError('Registration deadline must be before match date');
+        setError('Registration deadline must be before match start time');
         return false;
       }
     }
@@ -212,11 +226,12 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       // Convert dates to proper format for backend
-      // Use dateInput/matchDateInput (YYYY-MM-DD) if available, otherwise convert DD-MM-YY
+      // Use dateInput (YYYY-MM-DD) if available, otherwise convert DD-MM-YY
+      // matchDate and registrationDeadline are already in ISO format from datetime-local
       const submitData = {
         ...formData,
         date: dateInput ? dateInput : (formData.date ? formatDateToYYYYMMDD(formData.date) : ''),
-        matchDate: matchDateInput ? matchDateInput : (formData.matchDate ? formatDateToYYYYMMDD(formData.matchDate) : ''),
+        matchDate: formData.matchDate, // Already in ISO format from datetime-local
         registrationDeadline: formData.registrationDeadline // Already in ISO format from datetime-local
       };
       
@@ -327,11 +342,17 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
                 value={formData.mode}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+                disabled={!formData.game || modeTypes.length === 0}
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="Solo">Solo</option>
-                <option value="Duo">Duo</option>
-                <option value="Squad">Squad</option>
+                <option value="">
+                  {!formData.game ? 'Select Game First' : modeTypes.length === 0 ? 'No Modes Available' : 'Select Mode'}
+                </option>
+                {modeTypes.map(mode => (
+                  <option key={mode._id || mode.name} value={mode.name}>
+                    {mode.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -357,24 +378,15 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2">Match Date (DD-MM-YY) *</label>
-              <div className="space-y-2">
-                <input
-                  type="date"
-                  value={matchDateInput}
-                  onChange={(e) => handleDatePickerChange('matchDate', e.target.value)}
-                  required
-                  className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
-                />
-                <input
-                  type="text"
-                  name="matchDate"
-                  value={formData.matchDate}
-                  onChange={(e) => handleDateTextChange('matchDate', e.target.value)}
-                  placeholder="Or enter manually: DD-MM-YY"
-                  className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange text-sm"
-                />
-              </div>
+              <label className="block text-sm font-bold mb-2">Match Date (Date & Time) *</label>
+              <input
+                type="datetime-local"
+                value={matchDateInput}
+                onChange={(e) => handleDatePickerChange('matchDate', e.target.value)}
+                required
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+              />
+              <p className="text-xs text-gray-400 mt-1">When the match starts</p>
             </div>
 
             <div>

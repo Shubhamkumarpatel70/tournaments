@@ -21,6 +21,7 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
   });
   const [games, setGames] = useState([]);
   const [tournamentTypes, setTournamentTypes] = useState([]);
+  const [modeTypes, setModeTypes] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dateInput, setDateInput] = useState('');
@@ -31,6 +32,7 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
       fetchGames();
       if (tournament.game) {
         fetchTournamentTypes(tournament.game);
+        fetchModeTypes(tournament.game);
       }
       // Format dates to DD-MM-YY
       const formatDate = (dateString) => {
@@ -52,6 +54,18 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
         return `${year}-${month}-${day}`;
       };
 
+      // Format date to YYYY-MM-DDTHH:mm for datetime-local input
+      const formatDateTimeForInput = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+
       // Format registration deadline for datetime-local input
       const formatDateTimeLocal = (dateString) => {
         if (!dateString) return '';
@@ -70,7 +84,7 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
         tournamentType: tournament.tournamentType || '',
         mode: tournament.mode || '',
         date: formatDate(tournament.date),
-        matchDate: formatDate(tournament.matchDate),
+        matchDate: formatDateTimeForInput(tournament.matchDate), // Use datetime-local format for matchDate
         registrationDeadline: tournament.registrationDeadline ? formatDateTimeLocal(tournament.registrationDeadline) : '',
         entryFee: tournament.entryFee || '',
         prizePool: tournament.prizePool || '',
@@ -81,9 +95,7 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
         status: tournament.status || 'upcoming'
       });
       setDateInput(formatDateForInput(tournament.date));
-      setMatchDateInput(formatDateForInput(tournament.matchDate));
-      setDateInput(formatDateForInput(tournament.date));
-      setMatchDateInput(formatDateForInput(tournament.matchDate));
+      setMatchDateInput(formatDateTimeForInput(tournament.matchDate));
     }
   }, [isOpen, tournament]);
 
@@ -123,9 +135,21 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
     }
   };
 
+  const fetchModeTypes = async (game = null) => {
+    try {
+      const url = game ? `/mode-types?game=${encodeURIComponent(game)}` : '/mode-types';
+      const response = await api.get(url);
+      setModeTypes(response.data || []);
+    } catch (error) {
+      console.error('Error fetching mode types:', error);
+      setModeTypes([]);
+    }
+  };
+
   useEffect(() => {
     if (formData.game) {
       fetchTournamentTypes(formData.game);
+      fetchModeTypes(formData.game);
     }
   }, [formData.game]);
 
@@ -137,9 +161,10 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
     }));
     setError('');
     
-    // When game changes, fetch tournament types for that game
+    // When game changes, fetch tournament types and mode types for that game
     if (name === 'game') {
       fetchTournamentTypes(value);
+      fetchModeTypes(value);
     }
   };
 
@@ -176,17 +201,22 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
 
   const handleDatePickerChange = (name, value) => {
     if (value) {
-      const date = new Date(value);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = String(date.getFullYear()).slice(-2);
-      setFormData(prev => ({
-        ...prev,
-        [name]: `${day}-${month}-${year}`
-      }));
       if (name === 'date') {
+        const date = new Date(value);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        setFormData(prev => ({
+          ...prev,
+          [name]: `${day}-${month}-${year}`
+        }));
         setDateInput(value);
       } else if (name === 'matchDate') {
+        // For datetime-local, keep as ISO string
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
         setMatchDateInput(value);
       }
     }
@@ -203,6 +233,23 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
     e.preventDefault();
     setError('');
 
+    // Validate registration deadline is before match date (allowing same date but time must be before)
+    if (formData.registrationDeadline && formData.matchDate) {
+      const registrationDeadline = new Date(formData.registrationDeadline);
+      const matchDate = new Date(formData.matchDate);
+      
+      // Check if dates are valid
+      if (isNaN(registrationDeadline.getTime()) || isNaN(matchDate.getTime())) {
+        setError('Please enter valid dates and times');
+        return;
+      }
+      
+      if (registrationDeadline >= matchDate) {
+        setError('Registration deadline must be before match start time');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -216,7 +263,7 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
       if (formData.tournamentType) submitData.tournamentType = formData.tournamentType;
       if (formData.mode) submitData.mode = formData.mode;
       if (formData.date) submitData.date = formatDateToYYYYMMDD(formData.date);
-      if (formData.matchDate) submitData.matchDate = formatDateToYYYYMMDD(formData.matchDate);
+      if (formData.matchDate) submitData.matchDate = formData.matchDate; // Already in ISO format from datetime-local
       if (formData.registrationDeadline) submitData.registrationDeadline = formData.registrationDeadline;
       if (formData.entryFee !== undefined && formData.entryFee !== '') submitData.entryFee = formData.entryFee;
       if (formData.prizePool !== undefined && formData.prizePool !== '') submitData.prizePool = formData.prizePool;
@@ -328,11 +375,17 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
                 value={formData.mode}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+                disabled={!formData.game || modeTypes.length === 0}
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="Solo">Solo</option>
-                <option value="Duo">Duo</option>
-                <option value="Squad">Squad</option>
+                <option value="">
+                  {!formData.game ? 'Select Game First' : modeTypes.length === 0 ? 'No Modes Available' : 'Select Mode'}
+                </option>
+                {modeTypes.map(mode => (
+                  <option key={mode._id || mode.name} value={mode.name}>
+                    {mode.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -358,24 +411,15 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2">Match Date (DD-MM-YY) *</label>
-              <div className="space-y-2">
-                <input
-                  type="date"
-                  value={matchDateInput}
-                  onChange={(e) => handleDatePickerChange('matchDate', e.target.value)}
-                  required
-                  className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
-                />
-                <input
-                  type="text"
-                  name="matchDate"
-                  value={formData.matchDate}
-                  onChange={(e) => handleDateChange('matchDate', e.target.value)}
-                  placeholder="Or enter manually: DD-MM-YY"
-                  className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange text-sm"
-                />
-              </div>
+              <label className="block text-sm font-bold mb-2">Match Date (Date & Time) *</label>
+              <input
+                type="datetime-local"
+                value={matchDateInput}
+                onChange={(e) => handleDatePickerChange('matchDate', e.target.value)}
+                required
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+              />
+              <p className="text-xs text-gray-400 mt-1">When the match starts</p>
             </div>
 
             <div>

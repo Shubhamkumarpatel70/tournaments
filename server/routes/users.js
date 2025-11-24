@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { auth } = require('../middleware/auth');
+const { auth, authorize } = require('../middleware/auth');
 
 // Get all users (admin only) - Must be before /:id route
 router.get('/', async (req, res) => {
@@ -86,6 +86,49 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid user ID format' });
     }
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete user (Admin only)
+router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent deleting admin users
+    if (user.role === 'admin') {
+      return res.status(400).json({ error: 'Cannot delete admin users' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Terminate/Unt terminate user (Admin only)
+router.put('/:id/terminate', auth, authorize('admin'), async (req, res) => {
+  try {
+    const { isTerminated } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isTerminated: isTerminated === true },
+      { new: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ 
+      message: isTerminated ? 'User terminated successfully' : 'User termination removed successfully',
+      user 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

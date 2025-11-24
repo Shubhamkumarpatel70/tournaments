@@ -45,13 +45,18 @@ const MatchTimer = ({ matchDate }) => {
         ))}
       </div>
       <p className="text-sm text-gray-400 mt-2">
-        Next Match: {new Date(matchDate).toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })}
+        Next Match: {(() => {
+          const date = new Date(matchDate);
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = String(date.getFullYear()).slice(-2);
+          const time = date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          });
+          return `${day}-${month}-${year}, ${time}`;
+        })()}
       </p>
     </div>
   );

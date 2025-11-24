@@ -858,17 +858,18 @@ const Dashboard = () => {
                         </div>
                         <p className="text-gray-400 text-xs sm:text-sm mb-2 break-words">
                           📅{" "}
-                          {new Date(item.displayDate || item.matchDate || item.date).toLocaleDateString(
-                            "en-US",
-                            {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            }
-                          )}
+                          {(() => {
+                            const date = new Date(item.displayDate || item.matchDate || item.date);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            const time = date.toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            });
+                            return `${day}-${month}-${year}, ${time}`;
+                          })()}
                         </p>
                         {item.type === 'match' ? (
                           <div className="space-y-2 bg-charcoal/50 rounded-lg p-3 mt-2">
@@ -1258,14 +1259,17 @@ const Dashboard = () => {
                                     </p>
                                   )}
                                   <p>
-                                    📅 Match Date: {matchDate.toLocaleDateString('en-US', {
-                                      weekday: 'long',
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
+                                    📅 Match Date & Time: {(() => {
+                                      const day = String(matchDate.getDate()).padStart(2, '0');
+                                      const month = String(matchDate.getMonth() + 1).padStart(2, '0');
+                                      const year = String(matchDate.getFullYear()).slice(-2);
+                                      const time = matchDate.toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        hour12: true
+                                      });
+                                      return `${day}-${month}-${year}, ${time}`;
+                                    })()}
                                   </p>
                                   <p>
                                     💰 Prize Pool: <span className="text-fiery-yellow font-semibold">₹{tournament.prizePool?.toLocaleString() || '0'}</span>
@@ -1421,13 +1425,22 @@ const Dashboard = () => {
                           </span>
                           <h3 className="font-bold text-base sm:text-lg break-words">{tournament.name}</h3>
                         </div>
+                        {tournament.description && (
+                          <p className="text-gray-300 text-xs sm:text-sm mb-2 line-clamp-2">{tournament.description}</p>
+                        )}
                         <p className="text-gray-400 text-xs sm:text-sm break-words">
-                          📅 {new Date(tournament.date || tournament.matchDate).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                          📅 {(() => {
+                            const date = new Date(tournament.date || tournament.matchDate);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            const time = date.toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            });
+                            return `${day}-${month}-${year}, ${time}`;
+                          })()}
                         </p>
                         {tournament.registeredTeams !== undefined && (
                           <p className="text-gray-400 text-xs sm:text-sm mt-1">

@@ -14,6 +14,10 @@ router.post('/register', async (req, res) => {
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      // Check if the existing user is terminated
+      if (existingUser.isTerminated) {
+        return res.status(400).json({ error: 'New email ID required to register because your account is terminated' });
+      }
       return res.status(400).json({ error: 'User already exists' });
     }
 
@@ -80,6 +84,13 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if user is terminated
+    if (user.isTerminated) {
+      return res.status(403).json({ 
+        error: 'Your account is terminated. Please contact customer support.' 
+      });
     }
 
     // Check password

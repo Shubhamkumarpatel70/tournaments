@@ -126,11 +126,13 @@ const MyReferrals = () => {
                         <div className="text-right">
                           <div className="text-gray-400 text-xs mb-1">Registered On</div>
                           <div className="text-off-white text-sm font-semibold">
-                            {new Date(refUser.joinedAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
+                            {(() => {
+                              const date = new Date(refUser.joinedAt);
+                              const day = String(date.getDate()).padStart(2, '0');
+                              const month = String(date.getMonth() + 1).padStart(2, '0');
+                              const year = String(date.getFullYear()).slice(-2);
+                              return `${day}-${month}-${year}`;
+                            })()}
                           </div>
                           <div className="text-gray-500 text-xs mt-1">
                             {new Date(refUser.joinedAt).toLocaleTimeString('en-US', {

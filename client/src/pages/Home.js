@@ -164,15 +164,18 @@ const Home = () => {
                 </div>
               </div>
               <p className="text-sm sm:text-base md:text-lg lg:text-xl text-fiery-yellow font-bold mb-4 sm:mb-6 px-2 drop-shadow-lg">
-                ⚡ Next Match: {new Date(nextMatch.matchDate).toLocaleDateString('en-GB', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                })}, {new Date(nextMatch.matchDate).toLocaleTimeString('en-GB', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false
-                })}
+                ⚡ Next Match: {(() => {
+                  const date = new Date(nextMatch.matchDate);
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const year = String(date.getFullYear()).slice(-2);
+                  const time = date.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                  return `${day}-${month}-${year}, ${time}`;
+                })()}
               </p>
             </div>
           )}
@@ -257,13 +260,27 @@ const Home = () => {
                     <span className="text-fiery-yellow font-bold text-sm sm:text-base md:text-lg">₹{tournament.prizePool?.toLocaleString()}</span>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">{tournament.name}</h3>
+                  {tournament.description && (
+                    <p className="text-gray-300 text-sm mb-2 line-clamp-2">{tournament.description}</p>
+                  )}
                   
                   {/* Registration Countdown Timer */}
                   {tournament.registrationDeadline && (
                     <RegistrationCountdown deadline={tournament.registrationDeadline} />
                   )}
                   <div className="space-y-2 mb-3 sm:mb-4 text-xs sm:text-sm text-gray-400">
-                    <p>📅 Date of Match: {new Date(tournament.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                    <p>📅 Date & Time: {(() => {
+                      const date = new Date(tournament.matchDate);
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const year = String(date.getFullYear()).slice(-2);
+                      const time = date.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+                      return `${day}-${month}-${year}, ${time}`;
+                    })()}</p>
                     <p>🎮 Mode: {tournament.mode}</p>
                     <p>💰 Entry: ₹{tournament.entryFee}</p>
                   </div>

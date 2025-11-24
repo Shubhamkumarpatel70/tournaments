@@ -35,6 +35,8 @@ app.use('/api/payment-options', require('./routes/paymentOptions'));
 app.use('/api/games', require('./routes/games'));
 app.use('/api/tournament-types', require('./routes/tournamentTypes'));
 console.log('  - /api/tournament-types');
+app.use('/api/mode-types', require('./routes/modeTypes'));
+console.log('  - /api/mode-types');
 app.use('/api/home-images', require('./routes/homeImages'));
 console.log('  - /api/home-images');
 app.use('/api/leaderboard', require('./routes/leaderboard'));

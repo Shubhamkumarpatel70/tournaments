@@ -16,6 +16,8 @@ import EditPaymentOptionModal from '../components/EditPaymentOptionModal';
 import TournamentTypesManagement from '../components/TournamentTypesManagement';
 import ModeTypesManagement from '../components/ModeTypesManagement';
 import HomeImageManagement from '../components/HomeImageManagement';
+import TeamManagement from '../components/TeamManagement';
+import SocialManagement from '../components/SocialManagement';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -567,7 +569,9 @@ const AdminDashboard = () => {
     { id: 'transaction-history', label: 'Transaction History' },
     { id: 'referrals', label: 'Referrals' },
     { id: 'contacts', label: 'Contact Queries' },
-    { id: 'newsletter', label: 'Newsletter' }
+    { id: 'newsletter', label: 'Newsletter' },
+    { id: 'team', label: 'Team' },
+    { id: 'social', label: 'Social' }
   ];
 
   return (
@@ -1974,6 +1978,16 @@ const AdminDashboard = () => {
               <p className="text-gray-400 text-center py-8">No newsletter subscribers yet</p>
             )}
           </div>
+        )}
+
+        {/* Team Management Tab */}
+        {activeTab === 'team' && (
+          <TeamManagement />
+        )}
+
+        {/* Social Management Tab */}
+        {activeTab === 'social' && (
+          <SocialManagement />
         )}
       </div>
 

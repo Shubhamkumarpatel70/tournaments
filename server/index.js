@@ -29,7 +29,6 @@ app.use('/api/auth', require('./routes/auth'));
 console.log('Routes registered:');
 console.log('  - /api/users');
 app.use('/api/payments', require('./routes/payments'));
-app.use('/api/teams', require('./routes/teams'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/payment-options', require('./routes/paymentOptions'));
 app.use('/api/games', require('./routes/games'));
@@ -48,12 +47,16 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/referrals', require('./routes/referrals'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/payment-options', require('./routes/paymentOptions'));
+app.use('/api/teams', require('./routes/teams'));
+app.use('/api/socials', require('./routes/socials'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/payment-options', require('./routes/paymentOptions'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/teams', require('./routes/teams'));
+app.use('/api/socials', require('./routes/socials'));
 
 // Health check
 app.get('/api/health', (req, res) => {

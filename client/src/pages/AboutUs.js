@@ -1,6 +1,79 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../utils/api';
+
+const TeamMemberCard = ({ member }) => {
+  const [imageError, setImageError] = useState(false);
+
+  const getInitials = (name) => {
+    if (!name) return 'TM';
+    const words = name.trim().split(' ');
+    if (words.length >= 2) {
+      return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
+      {member.image && !imageError ? (
+        <img
+          src={member.image}
+          alt={member.name}
+          className="w-32 h-32 rounded-full mx-auto mb-4 object-cover border-2 border-lava-orange/30"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
+          {getInitials(member.name)}
+        </div>
+      )}
+      <h3 className="text-2xl font-bold mb-2">{member.name}</h3>
+      <p className="text-lava-orange mb-2">{member.position}</p>
+      {member.description && (
+        <p className="text-gray-400 text-sm mb-3">
+          {member.description}
+        </p>
+      )}
+      {member.socialLinks && member.socialLinks.length > 0 && (
+        <div className="flex justify-center gap-3 mt-3">
+          {member.socialLinks.map((link, idx) => (
+            <a
+              key={idx}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lava-orange hover:text-fiery-yellow transition-colors text-sm"
+              title={link.platform}
+            >
+              {link.platform}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AboutUs = () => {
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTeamMembers();
+  }, []);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const res = await api.get('/teams');
+      setTeamMembers(res.data || []);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      setTeamMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8 page-transition">
       <div className="max-w-7xl mx-auto">
@@ -41,49 +114,17 @@ const AboutUs = () => {
         {/* The Team */}
         <section className="mb-12 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-6 sm:mb-8 neon-text-cyan">The Team</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
-              <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                HV
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Harsh Vardhan</h3>
-              <p className="text-lava-orange mb-2">Founder & CEO</p>
-              <p className="text-gray-400 text-sm">
-                Passionate gamer and entrepreneur with 10+ years in esports industry
-              </p>
+          {loading ? (
+            <div className="text-center py-8 text-gray-400">Loading team members...</div>
+          ) : teamMembers.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">No team members to display</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {teamMembers.map((member) => (
+                <TeamMemberCard key={member._id} member={member} />
+              ))}
             </div>
-            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
-              <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                SK
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Shubham Kumar</h3>
-              <p className="text-lava-orange mb-2">Co-Founder</p>
-              <p className="text-gray-400 text-sm">
-                Passionate gamer and entrepreneur with expertise in esports industry
-              </p>
-            </div>
-            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
-              <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                HKD
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Harshit Kumar Dubey</h3>
-              <p className="text-lava-orange mb-2">Head of Operations</p>
-              <p className="text-gray-400 text-sm">
-                Expert in tournament organization and player management with 3+ years in esports industry
-              </p>
-            </div>
-            <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 text-center">
-              <div className="w-32 h-32 bg-lava-gradient rounded-full mx-auto mb-4 flex items-center justify-center text-4xl font-bold">
-                RK
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Ranjeet Kumar</h3>
-              <p className="text-lava-orange mb-2">Community Manager</p>
-              <p className="text-gray-400 text-sm">
-                Building and nurturing our amazing gaming community
-              </p>
-            </div>
-          
-          </div>
+          )}
         </section>
 
         {/* Our Values */}

@@ -44,7 +44,21 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      const errorCode = err.response?.data?.code;
+      const errorMessage = err.response?.data?.error || 'Login failed. Please try again.';
+      
+      // If user not found, redirect to register page
+      if (errorCode === 'USER_NOT_FOUND' || errorMessage.includes('User not found')) {
+        navigate('/register', { 
+          state: { 
+            message: 'Account not found. Please register to create a new account.',
+            email: formData.email 
+          } 
+        });
+        return;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

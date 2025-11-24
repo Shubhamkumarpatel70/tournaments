@@ -1,23 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
 
 const Register = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', referralCode: '' });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  // Auto-fill referral code from URL parameter
+  // Auto-fill referral code from URL parameter and email from location state
   useEffect(() => {
     const refCode = searchParams.get('ref');
     if (refCode) {
       setFormData(prev => ({ ...prev, referralCode: refCode }));
     }
-  }, [searchParams]);
+    
+    // Pre-fill email if redirected from login
+    if (location.state?.email) {
+      setFormData(prev => ({ ...prev, email: location.state.email }));
+    }
+    
+    // Show success message if redirected from login
+    if (location.state?.message) {
+      setSuccess(location.state.message);
+    }
+  }, [searchParams, location]);
 
   const handleChange = (e) => {
     setFormData({
@@ -66,6 +78,11 @@ const Register = () => {
           <h1 className="text-4xl font-bold text-center mb-2 neon-text-cyan">Register</h1>
           <p className="text-center text-gray-400 mb-8">Create your Tournament account</p>
 
+          {success && (
+            <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-4">
+              {success}
+            </div>
+          )}
           {error && (
             <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-4">
               {error}

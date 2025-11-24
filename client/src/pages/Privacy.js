@@ -135,8 +135,14 @@ const Privacy = () => {
 
           <section>
             <h2 className="text-2xl font-bold text-lava-orange mb-4">Contact Us</h2>
+            <p className="text-gray-300 mb-2">
+              If you have any questions about this Privacy Policy, please contact us:
+            </p>
             <p className="text-gray-300">
-              If you have any questions about this Privacy Policy, please contact us through our Contact page.
+              Email: <a href="mailto:official.arenaofchampions@gmail.com" className="text-lava-orange hover:text-fiery-yellow transition-colors">official.arenaofchampions@gmail.com</a>
+            </p>
+            <p className="text-gray-300 mt-2">
+              Or visit our <a href="/contact" className="text-lava-orange hover:text-fiery-yellow transition-colors">Contact page</a>.
             </p>
           </section>
 

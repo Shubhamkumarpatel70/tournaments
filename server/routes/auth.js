@@ -83,7 +83,7 @@ router.post('/login', async (req, res) => {
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(404).json({ error: 'User not found. Please register first.', code: 'USER_NOT_FOUND' });
     }
 
     // Check if user is terminated

@@ -1,35 +1,21 @@
 const mongoose = require('mongoose');
 
-const teamSchema = new mongoose.Schema({
+const socialSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    unique: true
   },
-  position: {
+  icon: {
     type: String,
     required: true,
     trim: true
   },
-  description: {
+  link: {
     type: String,
-    default: ''
-  },
-  socialLinks: [{
-    platform: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    url: {
-      type: String,
-      required: true,
-      trim: true
-    }
-  }],
-  image: {
-    type: String,
-    default: ''
+    required: true,
+    trim: true
   },
   isActive: {
     type: Boolean,
@@ -49,9 +35,10 @@ const teamSchema = new mongoose.Schema({
   }
 });
 
-teamSchema.pre('save', function(next) {
+socialSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model('Team', teamSchema);
+module.exports = mongoose.model('Social', socialSchema);
+

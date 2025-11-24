@@ -17,6 +17,7 @@ import TournamentTypesManagement from '../components/TournamentTypesManagement';
 import ModeTypesManagement from '../components/ModeTypesManagement';
 import HomeImageManagement from '../components/HomeImageManagement';
 import TeamManagement from '../components/TeamManagement';
+import TournamentTeamsManagement from '../components/TournamentTeamsManagement';
 import SocialManagement from '../components/SocialManagement';
 
 const AdminDashboard = () => {
@@ -570,6 +571,7 @@ const AdminDashboard = () => {
     { id: 'referrals', label: 'Referrals' },
     { id: 'contacts', label: 'Contact Queries' },
     { id: 'newsletter', label: 'Newsletter' },
+    { id: 'member', label: 'Member' },
     { id: 'team', label: 'Team' },
     { id: 'social', label: 'Social' }
   ];
@@ -1986,9 +1988,14 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Team Management Tab */}
-        {activeTab === 'team' && (
+        {/* Member Management Tab - For "About Us" page team members */}
+        {activeTab === 'member' && (
           <TeamManagement />
+        )}
+
+        {/* Tournament Teams Management Tab */}
+        {activeTab === 'team' && (
+          <TournamentTeamsManagement />
         )}
 
         {/* Social Management Tab */}

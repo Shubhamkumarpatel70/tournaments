@@ -24,7 +24,11 @@ const TeamManagement = () => {
   const fetchData = async () => {
     try {
       const res = await api.get('/teams/all');
-      setTeamMembers(res.data || []);
+      // Filter only "About Us" team members (those with position field, not tournament teams)
+      const aboutUsMembers = (res.data || []).filter(member => 
+        member.position && !member.game
+      );
+      setTeamMembers(aboutUsMembers);
       setError('');
     } catch (error) {
       console.error('Error fetching team members:', error);

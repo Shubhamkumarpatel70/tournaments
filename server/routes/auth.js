@@ -117,5 +117,117 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Forgot Password
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      // Don't reveal if user exists for security
+      return res.status(200).json({ 
+        message: 'If an account exists with this email, you can now reset your password.' 
+      });
+    }
+
+    // Check if user is terminated
+    if (user.isTerminated) {
+      return res.status(403).json({ 
+        error: 'Your account is terminated. Please contact customer support.' 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = jwt.sign({ userId: user._id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+    
+    // Save reset token and expiry (1 hour from now)
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+    await user.save();
+
+    // Return success (in production, you would send an email with the reset link)
+    res.status(200).json({ 
+      message: 'You can now reset your password. Please proceed to the reset page.',
+      email: user.email
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Server error. Please try again later.' });
+  }
+});
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if user is terminated
+    if (user.isTerminated) {
+      return res.status(403).json({ 
+        error: 'Your account is terminated. Please contact customer support.' 
+      });
+    }
+
+    // Check if reset token exists and is valid
+    if (!user.resetToken || !user.resetTokenExpiry) {
+      return res.status(400).json({ 
+        error: 'No active password reset request. Please request a new password reset.' 
+      });
+    }
+
+    // Check if token is expired
+    if (new Date() > user.resetTokenExpiry) {
+      user.resetToken = null;
+      user.resetTokenExpiry = null;
+      await user.save();
+      return res.status(400).json({ 
+        error: 'Password reset link has expired. Please request a new password reset.' 
+      });
+    }
+
+    // Verify token
+    try {
+      const decoded = jwt.verify(user.resetToken, JWT_SECRET);
+      if (decoded.userId.toString() !== user._id.toString() || decoded.email !== user.email) {
+        return res.status(400).json({ error: 'Invalid reset token' });
+      }
+    } catch (tokenError) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    user.password = password;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    res.status(200).json({ 
+      message: 'Password reset successfully! Please login with your new password.' 
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Server error. Please try again later.' });
+  }
+});
+
 module.exports = router;
 

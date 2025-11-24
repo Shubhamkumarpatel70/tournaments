@@ -16,6 +16,8 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AccountantDashboard from './pages/AccountantDashboard';
@@ -46,6 +48,8 @@ function App() {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route 
                 path="/dashboard" 
                 element={

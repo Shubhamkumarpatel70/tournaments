@@ -102,8 +102,9 @@ const Dashboard = () => {
         
         // Filter to only show active teams - handle both array and object responses
         const teamsData = Array.isArray(teamsResponse.data) ? teamsResponse.data : [];
-        const activeTeams = teamsData.filter(team => team && team.status === 'active');
-        setMyTeams(activeTeams);
+        // Include all teams (active, inactive, and terminated) - user can see all their teams
+        const userTeams = teamsData.filter(team => team);
+        setMyTeams(userTeams);
         
         // Handle match schedules - ensure it's an array
         const schedulesData = Array.isArray(schedulesResponse.data) ? schedulesResponse.data : [];
@@ -212,6 +213,7 @@ const Dashboard = () => {
               time: new Date(),
             });
           }
+          const activeTeams = myTeams.filter(team => team.status === 'active' && !team.isTerminated);
           if (activeTeams.length === 0) {
             notifs.push({
               id: 'system-team',
@@ -235,6 +237,7 @@ const Dashboard = () => {
               time: new Date(),
             });
           }
+          const activeTeams = myTeams.filter(team => team.status === 'active' && !team.isTerminated);
           if (activeTeams.length === 0) {
             notifs.push({
               id: 2,
@@ -318,10 +321,11 @@ const Dashboard = () => {
         await api.delete(`/teams/${teamId}`);
         // Refresh teams list from backend to ensure it's updated
         const teamsResponse = await api.get("/teams/my-teams");
-        const activeTeams = teamsResponse.data.filter(team => team.status === 'active');
-        setMyTeams(activeTeams);
+        const updatedTeams = teamsResponse.data || [];
+        setMyTeams(updatedTeams);
         
-        // Add notification if no teams left
+        // Add notification if no active teams left
+        const activeTeams = updatedTeams.filter(team => team.status === 'active' && !team.isTerminated);
         if (activeTeams.length === 0) {
           setNotifications((prev) => [
             ...prev.filter((n) => n.type !== "team"),
@@ -344,13 +348,12 @@ const Dashboard = () => {
     // Refresh teams list to ensure we have the latest data
     try {
       const teamsResponse = await api.get("/teams/my-teams");
-      const activeTeams = teamsResponse.data.filter(team => team.status === 'active');
-      setMyTeams(activeTeams);
+      setMyTeams(teamsResponse.data || []);
     } catch (error) {
       console.error("Error refreshing teams:", error);
-      // Fallback: add the team if it's active
-      if (team.status === 'active') {
-        setMyTeams((prev) => [team, ...prev]);
+      // Fallback: add the team to the list
+      if (team) {
+        setMyTeams((prev) => [team, ...prev.filter(t => t._id !== team._id)]);
       }
     }
     setNotifications((prev) => prev.filter((n) => n.type !== "team"));
@@ -765,8 +768,7 @@ const Dashboard = () => {
                           await api.post(`/team-invitations/${invitation._id}/accept`);
                           // Refresh teams and invitations
                           const teamsResponse = await api.get("/teams/my-teams");
-                          const activeTeams = teamsResponse.data.filter(team => team.status === 'active');
-                          setMyTeams(activeTeams);
+                          setMyTeams(teamsResponse.data || []);
                           const invitationsResponse = await api.get('/team-invitations/my-invitations');
                           setTeamInvitations(invitationsResponse.data || []);
                         } catch (error) {
@@ -1001,37 +1003,56 @@ const Dashboard = () => {
                           {team.game}
                         </span>
                       </div>
-                      <span
-                        className={`inline-block px-2 py-1 rounded text-xs ${
-                          team.status === "active"
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                            : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
-                        }`}
-                      >
-                        {team.status}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-block px-2 py-1 rounded text-xs ${
+                            team.status === "active"
+                              ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                              : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+                          }`}
+                        >
+                          {team.status}
+                        </span>
+                        {team.isTerminated && (
+                          <span className="inline-block px-2 py-1 rounded text-xs bg-red-500/20 text-red-400 border border-red-500/30">
+                            Terminated
+                          </span>
+                        )}
+                      </div>
+                      {team.isTerminated && team.terminationReason && (
+                        <div className="mt-2 p-2 bg-red-500/10 border border-red-500/30 rounded text-xs text-red-400">
+                          <strong>Termination Reason:</strong> {team.terminationReason}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setEditingTeam(team);
-                          setIsEditTeamModalOpen(true);
-                        }}
-                        className="flex-1 sm:flex-none text-xs sm:text-sm"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDeleteTeam(team._id)}
-                        className="flex-1 sm:flex-none text-xs sm:text-sm"
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    {!team.isTerminated && (
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setEditingTeam(team);
+                            setIsEditTeamModalOpen(true);
+                          }}
+                          className="flex-1 sm:flex-none text-xs sm:text-sm"
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteTeam(team._id)}
+                          className="flex-1 sm:flex-none text-xs sm:text-sm"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    )}
+                    {team.isTerminated && (
+                      <div className="text-xs text-red-400 italic">
+                        Team terminated. Cannot edit or delete.
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2 pt-2 border-t border-lava-orange/10">
                     <p className="text-sm text-gray-400">
@@ -1054,7 +1075,7 @@ const Dashboard = () => {
             <div className="text-center py-12">
               <div className="mb-4">
                 <div className="text-6xl mb-4">👥</div>
-                <p className="text-gray-400 mb-2 text-lg">You don't have any active teams yet</p>
+                <p className="text-gray-400 mb-2 text-lg">You don't have any teams yet</p>
                 <p className="text-gray-500 text-sm mb-6">Create a team to start participating in tournaments</p>
               </div>
               <Button
@@ -1555,17 +1576,14 @@ const Dashboard = () => {
             // Refresh teams list to ensure we have the latest data
             try {
               const teamsResponse = await api.get("/teams/my-teams");
-              const activeTeams = teamsResponse.data.filter(team => team.status === 'active');
-              setMyTeams(activeTeams);
+              setMyTeams(teamsResponse.data || []);
             } catch (error) {
               console.error("Error refreshing teams:", error);
               // Fallback: update the team in the list
               setMyTeams((prevTeams) => {
-                const updated = prevTeams.map((team) =>
+                return prevTeams.map((team) =>
                   team._id === updatedTeam._id ? updatedTeam : team
                 );
-                // Filter to only show active teams
-                return updated.filter(team => team.status === 'active');
               });
             }
             setIsEditTeamModalOpen(false);

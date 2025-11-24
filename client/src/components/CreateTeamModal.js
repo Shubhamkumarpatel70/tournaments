@@ -56,6 +56,17 @@ const CreateTeamModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const validateForm = () => {
+    // Check for duplicate gameIds
+    const gameIds = formData.members
+      .map(m => m.gameId?.trim().toUpperCase())
+      .filter(id => id && id !== '');
+    
+    const uniqueGameIds = new Set(gameIds);
+    if (gameIds.length !== uniqueGameIds.size) {
+      setError('Duplicate game IDs are not allowed in a team. Each player must have a unique game ID.');
+      return false;
+    }
+
     if (!formData.name.trim()) {
       setError('Team name is required');
       return false;

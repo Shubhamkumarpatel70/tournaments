@@ -5,6 +5,7 @@ import { tournamentAPI } from '../utils/api';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import RegistrationCountdown from '../components/RegistrationCountdown';
+import SEO from '../components/SEO';
 
 const Home = () => {
   const { user } = useAuth();
@@ -91,8 +92,15 @@ const Home = () => {
   }, [nextMatch]);
 
   return (
-    <div className="page-transition overflow-x-hidden">
-      {/* Hero Section */}
+    <>
+      <SEO
+        title="arenaofchampions - Compete. Win. Dominate. | BGMI & Free Fire Tournaments"
+        description="Join arenaofchampions - India's premier gaming tournament platform. Compete in BGMI and Free Fire tournaments, win massive cash prizes, and dominate the leaderboards. Register now for free and showcase your skills in competitive esports battles!"
+        keywords="aoc, harshvardhan, bgmi aoc, arenaofchampions, BGMI tournaments, Free Fire tournaments, gaming tournaments, esports, battle royale, mobile gaming, tournament platform, gaming competitions, prize pool, leaderboards"
+        url="/"
+      />
+      <div className="page-transition overflow-x-hidden">
+        {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Background Gaming Image */}
         <div 
@@ -463,7 +471,8 @@ const Home = () => {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 };
 

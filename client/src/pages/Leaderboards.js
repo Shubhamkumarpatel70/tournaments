@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import SEO from '../components/SEO';
 
 const Leaderboards = () => {
   const [topTeams, setTopTeams] = useState([]);
@@ -70,9 +71,16 @@ const Leaderboards = () => {
   };
 
   return (
-    <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8 page-transition bg-gradient-to-b from-lava-black via-charcoal to-lava-black">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
+    <>
+      <SEO
+        title="Leaderboards - Top Teams & Players | arenaofchampions"
+        description="Check out the top teams and players on arenaofchampions leaderboards. See who's dominating BGMI and Free Fire tournaments. Climb the ranks and compete for the top spot!"
+        keywords="gaming leaderboards, esports rankings, top teams, top players, BGMI leaderboard, Free Fire leaderboard, tournament rankings, competitive gaming rankings"
+        url="/leaderboards"
+      />
+      <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8 page-transition bg-gradient-to-b from-lava-black via-charcoal to-lava-black">
+        <div className="max-w-7xl mx-auto">
+          {/* Header Section */}
         <div className="text-center mb-8 sm:mb-12">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             <div className="flex-1 text-center sm:text-left">
@@ -235,8 +243,9 @@ const Leaderboards = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -1,0 +1,29 @@
+# robots.txt for arenaofchampions.in
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /accountant/
+Disallow: /dashboard
+Disallow: /wallet
+Disallow: /join-team
+Disallow: /my-referrals
+Disallow: /notifications
+Disallow: /reset-password
+
+# Allow important pages
+Allow: /tournaments
+Allow: /leaderboards
+Allow: /upcoming-matches
+Allow: /about
+Allow: /contact
+Allow: /rules
+Allow: /terms
+Allow: /privacy
+
+# Sitemap location
+Sitemap: https://arenaofchampions.in/sitemap.xml
+
+# Crawl delay (optional, helps prevent server overload)
+Crawl-delay: 1
+

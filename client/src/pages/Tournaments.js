@@ -5,6 +5,7 @@ import Button from '../components/Button';
 import TournamentRegistrationModal from '../components/TournamentRegistrationModal';
 import { useAuth } from '../context/AuthContext';
 import RegistrationCountdown from '../components/RegistrationCountdown';
+import SEO from '../components/SEO';
 
 const Tournaments = () => {
   const [viewMode, setViewMode] = useState('grid');
@@ -118,9 +119,16 @@ const Tournaments = () => {
   const filteredTournaments = tournaments;
 
   return (
-    <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8 page-transition">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 neon-text-cyan">Tournaments</h1>
+    <>
+      <SEO
+        title="Gaming Tournaments - BGMI & Free Fire | arenaofchampions"
+        description="Browse and join exciting BGMI and Free Fire tournaments. Compete for cash prizes, climb the leaderboards, and prove your skills in competitive esports battles. Register now!"
+        keywords="BGMI tournaments, Free Fire tournaments, gaming tournaments, esports competitions, battle royale tournaments, mobile gaming tournaments, tournament registration, prize pool tournaments"
+        url="/tournaments"
+      />
+      <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8 page-transition">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-3 sm:mb-4 neon-text-cyan">Tournaments</h1>
         <p className="text-center text-gray-400 mb-6 sm:mb-8 text-sm sm:text-base">Find and join the best gaming tournaments</p>
 
         {/* Filters and Controls */}
@@ -430,7 +438,8 @@ const Tournaments = () => {
           setSelectedTournament(null);
         }}
       />
-    </div>
+      </div>
+    </>
   );
 };
 

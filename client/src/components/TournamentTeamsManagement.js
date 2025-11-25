@@ -150,6 +150,20 @@ const TournamentTeamsManagement = () => {
     }
   };
 
+  const handleMatchResultChange = async (teamId, matchResult) => {
+    try {
+      await api.put(`/teams/${teamId}/match-result`, { matchResult });
+      if (matchResult === 'win') {
+        alert('Match result updated to Win. Congratulations notifications have been sent to all team members!');
+      } else {
+        alert('Match result updated successfully!');
+      }
+      fetchData();
+    } catch (error) {
+      alert('Error updating match result: ' + (error.response?.data?.error || 'Unknown error'));
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8 text-gray-400">
@@ -320,6 +334,20 @@ const TournamentTeamsManagement = () => {
                 </div>
 
                 <div className="flex flex-col gap-2 w-full sm:w-auto">
+                  {/* Match Result Dropdown */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-400">Match Result:</label>
+                    <select
+                      value={team.matchResult || 'pending'}
+                      onChange={(e) => handleMatchResultChange(team._id, e.target.value)}
+                      className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="win">Win</option>
+                      <option value="loss">Loss</option>
+                    </select>
+                  </div>
+
                   {/* Terminate Toggle */}
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-gray-400">Terminate:</label>

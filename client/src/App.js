@@ -27,6 +27,7 @@ import Wallet from './pages/Wallet';
 import AllUserWallets from './pages/AllUserWallets';
 import AllWithdrawalRequests from './pages/AllWithdrawalRequests';
 import MyReferrals from './pages/MyReferrals';
+import AllNotifications from './pages/AllNotifications';
 import './App.css';
 
 function App() {
@@ -120,6 +121,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MyReferrals />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/notifications" 
+                element={
+                  <ProtectedRoute>
+                    <AllNotifications />
                   </ProtectedRoute>
                 } 
               />

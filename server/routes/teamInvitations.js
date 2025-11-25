@@ -92,8 +92,8 @@ router.post('/:invitationId/accept', auth, async (req, res) => {
       });
     }
 
-    // Add user to team as first member (team leader position)
-    team.members.unshift({
+    // Add user to team as a regular member (not team leader)
+    team.members.push({
       name: req.user.name,
       gameId: req.user.gameId.trim(),
       email: req.user.email,
@@ -199,8 +199,8 @@ router.post('/accept-code/:code', auth, async (req, res) => {
       invitation.invitedUser = req.user._id;
     }
 
-    // Add user to team as first member (team leader position)
-    team.members.unshift({
+    // Add user to team as a regular member (not team leader)
+    team.members.push({
       name: req.user.name,
       gameId: req.user.gameId.trim(),
       email: req.user.email,

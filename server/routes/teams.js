@@ -606,4 +606,65 @@ router.post('/:id/leave', auth, async (req, res) => {
   }
 });
 
+// Update match result (Admin only)
+router.put('/:id/match-result', auth, authorize('admin', 'co-admin'), async (req, res) => {
+  try {
+    const { matchResult } = req.body;
+    
+    if (!matchResult || !['pending', 'win', 'loss'].includes(matchResult)) {
+      return res.status(400).json({ error: 'Valid match result is required (pending, win, or loss)' });
+    }
+
+    const team = await Team.findById(req.params.id);
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Check if it's a tournament team
+    if (team.position) {
+      return res.status(400).json({ error: 'This endpoint is only for tournament teams' });
+    }
+
+    // Update match result
+    team.matchResult = matchResult;
+    await team.save();
+
+    // If team won, send congratulations notification to all team members
+    if (matchResult === 'win') {
+      const Notification = require('../models/Notification');
+      const teamMemberUserIds = team.members
+        .filter(member => member.userId)
+        .map(member => member.userId.toString());
+
+      // Also include captain if not already in members
+      if (team.captain) {
+        const captainId = team.captain.toString();
+        if (!teamMemberUserIds.includes(captainId)) {
+          teamMemberUserIds.push(captainId);
+        }
+      }
+
+      // Create notifications for each team member
+      const notificationPromises = teamMemberUserIds.map(userId => {
+        return Notification.create({
+          title: '🎉 Congratulations! You Won the Match!',
+          message: `Congratulations! Your team "${team.name}" has won the match. Great job and keep up the excellent performance!`,
+          type: 'success',
+          target: 'user',
+          targetUserId: userId,
+          isActive: true,
+          createdBy: req.user._id
+        });
+      });
+
+      await Promise.all(notificationPromises);
+    }
+
+    res.json({ message: 'Match result updated successfully', team });
+  } catch (error) {
+    console.error('Error updating match result:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

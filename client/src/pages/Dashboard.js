@@ -889,9 +889,21 @@ const Dashboard = () => {
 
           {/* Notifications */}
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-lava-orange">
-              Notifications
-            </h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-lava-orange">
+                Notifications
+              </h2>
+              {notifications.length > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate('/notifications')}
+                  className="w-full sm:w-auto"
+                >
+                  View All
+                </Button>
+              )}
+            </div>
             {notifications.length > 0 ? (
               <div className="space-y-3">
                 {notifications
@@ -921,6 +933,35 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Congratulations Banner for Winning Teams */}
+        {myTeams.some(team => team.matchResult === 'win') && (
+          <div className="mb-6 sm:mb-8 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/50 rounded-lg p-4 sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="text-4xl sm:text-5xl">🎉</div>
+              <div className="flex-1">
+                <h3 className="text-xl sm:text-2xl font-bold text-green-400 mb-2">
+                  Congratulations! You Won the Match!
+                </h3>
+                <p className="text-gray-300 text-sm sm:text-base mb-3">
+                  {myTeams.filter(team => team.matchResult === 'win').map(team => team.name).join(', ')} {myTeams.filter(team => team.matchResult === 'win').length === 1 ? 'has' : 'have'} won the match! Great job and keep up the excellent performance!
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {myTeams
+                    .filter(team => team.matchResult === 'win')
+                    .map(team => (
+                      <span
+                        key={team._id}
+                        className="px-3 py-1 bg-green-500/30 border border-green-500/50 rounded-lg text-green-300 text-sm font-semibold"
+                      >
+                        🏆 {team.name} - {team.game}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* My Teams */}
         <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
@@ -1672,9 +1713,10 @@ const Dashboard = () => {
                 <div>
                   <span className="text-gray-400">Team Leader:</span>
                   <span className="text-off-white font-semibold ml-2">
-                    {invitingTeam.members && invitingTeam.members.length > 0 
+                    {invitingTeam.captain?.name || 
+                     (invitingTeam.members && invitingTeam.members.length > 0 
                       ? invitingTeam.members[0].name 
-                      : 'N/A'}
+                      : 'N/A')}
                   </span>
                 </div>
                 <div>

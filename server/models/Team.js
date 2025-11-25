@@ -96,6 +96,11 @@ const teamSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
   },
+  matchResult: {
+    type: String,
+    enum: ['pending', 'win', 'loss'],
+    default: 'pending'
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -94,9 +94,9 @@ const Home = () => {
   return (
     <>
       <SEO
-        title="arenaofchampions - Compete. Win. Dominate. | BGMI & Free Fire Tournaments"
-        description="Join arenaofchampions - India's premier gaming tournament platform. Compete in BGMI and Free Fire tournaments, win massive cash prizes, and dominate the leaderboards. Register now for free and showcase your skills in competitive esports battles!"
-        keywords="aoc, harshvardhan, bgmi aoc, arenaofchampions, BGMI tournaments, Free Fire tournaments, gaming tournaments, esports, battle royale, mobile gaming, tournament platform, gaming competitions, prize pool, leaderboards"
+        title="Arena of Champions - Compete. Win. Dominate. | BGMI & Free Fire Tournaments"
+        description="Join Arena of Champions (arenaofchampions) - India's premier gaming tournament platform. Compete in BGMI and Free Fire tournaments, win massive cash prizes, and dominate the leaderboards. Register now for free and showcase your skills in competitive esports battles!"
+        keywords="Arena of Champions, arena of champions, arenaofchampions, aoc, harshvardhan, bgmi aoc, BGMI tournaments, Free Fire tournaments, gaming tournaments, esports, battle royale, mobile gaming, tournament platform, gaming competitions, prize pool, leaderboards"
         url="/"
       />
       <div className="page-transition overflow-x-hidden">
@@ -136,6 +136,9 @@ const Home = () => {
         </div>
         
         <div className="relative z-20 text-center px-4 sm:px-6 lg:px-8 animate-fadeIn">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-fiery-yellow drop-shadow-lg animate-fadeIn">
+            Arena of Champions
+          </h2>
           <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 sm:mb-8 neon-text drop-shadow-2xl animate-slideDown leading-tight break-words">
             <span className="block sm:inline">COMPETE.</span>{' '}
             <span className="block sm:inline">WIN.</span>{' '}

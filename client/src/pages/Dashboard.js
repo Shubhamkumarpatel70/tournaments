@@ -245,27 +245,27 @@ const Dashboard = () => {
         } catch (error) {
           console.error('Error fetching notifications:', error);
           // Fallback to system notifications
-          const notifs = [];
+        const notifs = [];
           if (allUpcoming.length > 0) {
-            notifs.push({
-              id: 1,
-              type: "tournament",
+          notifs.push({
+            id: 1,
+            type: "tournament",
               message: `You have ${allUpcoming.length} upcoming tournament${
                 allUpcoming.length > 1 ? "s" : ""
-              }`,
-              time: new Date(),
-            });
-          }
+            }`,
+            time: new Date(),
+          });
+        }
           const activeTeams = myTeams.filter(team => team.status === 'active' && !team.isTerminated);
           if (activeTeams.length === 0) {
-            notifs.push({
-              id: 2,
-              type: "team",
-              message: "Create a team to participate in tournaments",
-              time: new Date(),
-            });
-          }
-          setNotifications(notifs);
+          notifs.push({
+            id: 2,
+            type: "team",
+            message: "Create a team to participate in tournaments",
+            time: new Date(),
+          });
+        }
+        setNotifications(notifs);
         }
         // Fetch team invitations
         try {
@@ -445,11 +445,11 @@ const Dashboard = () => {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Button variant="primary" onClick={() => setIsTeamModalOpen(true)} className="flex-1 sm:flex-none">
-              + Create Team
-            </Button>
+            + Create Team
+          </Button>
             <Button variant="secondary" onClick={() => navigate('/join-team')} className="flex-1 sm:flex-none">
               Join Team
-            </Button>
+          </Button>
           </div>
         </div>
 
@@ -460,9 +460,9 @@ const Dashboard = () => {
               <div>
                 <div className="text-2xl sm:text-3xl font-bold text-lava-orange mb-2">
                   {myTeams.length}
-                </div>
+            </div>
                 <div className="text-gray-400 text-sm sm:text-base">Active Teams</div>
-              </div>
+          </div>
               <div className="text-3xl sm:text-4xl">👥</div>
             </div>
           </div>
@@ -471,11 +471,11 @@ const Dashboard = () => {
               <div className="flex-1">
                 <div className="text-2xl sm:text-3xl font-bold text-fiery-yellow mb-2">
                   ₹{walletBalance.toLocaleString()}
-                </div>
-                <div className="text-gray-400 text-sm sm:text-base">Wallet Balance</div>
-              </div>
-              <div className="text-3xl sm:text-4xl">💰</div>
             </div>
+                <div className="text-gray-400 text-sm sm:text-base">Wallet Balance</div>
+          </div>
+              <div className="text-3xl sm:text-4xl">💰</div>
+        </div>
             <Button
               variant="primary"
               onClick={() => navigate('/wallet')}
@@ -754,8 +754,8 @@ const Dashboard = () => {
           <div className="lg:col-span-2 bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
               <h2 className="text-xl sm:text-2xl font-bold text-lava-orange">
-                Upcoming Matches
-              </h2>
+              Upcoming Matches
+            </h2>
               {upcomingMatches.length > 1 && (
                 <div className="flex gap-2">
                   <Button 
@@ -845,13 +845,13 @@ const Dashboard = () => {
                             )}
                             <p className="text-gray-400 text-sm">
                               💰 Entry Fee: <span className="text-fiery-yellow font-semibold">₹{item.entryFee?.toLocaleString()}</span>
-                            </p>
-                            <p className="text-gray-400 text-sm">
+                        </p>
+                        <p className="text-gray-400 text-sm">
                               🏆 Prize Pool: <span className="text-fiery-yellow font-semibold">₹{item.prizePool?.toLocaleString()}</span>
-                            </p>
-                          </div>
-                        )}
+                        </p>
                       </div>
+                        )}
+                        </div>
                       {item.type === 'tournament' && (
                         <div className="w-full sm:w-auto flex flex-col sm:flex-col items-start sm:items-end gap-2">
                           <div className="text-fiery-yellow font-bold text-lg sm:text-xl mb-1 sm:mb-2">
@@ -870,10 +870,10 @@ const Dashboard = () => {
                                 setIsRegistrationModalOpen(true);
                               }}
                             >
-                              Register
-                            </Button>
+                          Register
+                        </Button>
                           )}
-                        </div>
+                      </div>
                       )}
                     </div>
                   </div>
@@ -891,8 +891,8 @@ const Dashboard = () => {
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
               <h2 className="text-xl sm:text-2xl font-bold text-lava-orange">
-                Notifications
-              </h2>
+              Notifications
+            </h2>
               {notifications.length > 0 && (
                 <Button
                   variant="secondary"
@@ -910,16 +910,16 @@ const Dashboard = () => {
                   .sort((a, b) => new Date(b.time) - new Date(a.time)) // Sort by most recent first
                   .slice(0, 3) // Show only top 3
                   .map((notif) => (
-                    <div
-                      key={notif.id}
-                      className="bg-lava-black border border-lava-orange/20 rounded-lg p-3"
-                    >
-                      <p className="text-sm text-off-white">{notif.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(notif.time).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  ))}
+                  <div
+                    key={notif.id}
+                    className="bg-lava-black border border-lava-orange/20 rounded-lg p-3"
+                  >
+                    <p className="text-sm text-off-white">{notif.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(notif.time).toLocaleTimeString()}
+                    </p>
+                  </div>
+                ))}
                 {notifications.length > 3 && (
                   <p className="text-xs text-gray-400 text-center pt-2">
                     +{notifications.length - 3} more notification{notifications.length - 3 > 1 ? 's' : ''}
@@ -999,20 +999,20 @@ const Dashboard = () => {
                     <div className="flex-1 w-full">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="font-bold text-base sm:text-lg break-words">{team.name}</h3>
-                        <span className="bg-lava-orange text-lava-black px-2 py-1 rounded text-xs font-bold">
-                          {team.game}
-                        </span>
-                      </div>
+                      <span className="bg-lava-orange text-lava-black px-2 py-1 rounded text-xs font-bold">
+                        {team.game}
+                      </span>
+                    </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span
+                      <span
                           className={`inline-block px-2 py-1 rounded text-xs ${
-                            team.status === "active"
+                          team.status === "active"
                               ? "bg-green-500/20 text-green-400 border border-green-500/30"
                               : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
-                          }`}
-                        >
-                          {team.status}
-                        </span>
+                        }`}
+                      >
+                        {team.status}
+                      </span>
                         {team.isTerminated && (
                           <span className="inline-block px-2 py-1 rounded text-xs bg-red-500/20 text-red-400 border border-red-500/30">
                             Terminated
@@ -1056,25 +1056,25 @@ const Dashboard = () => {
                                     Invite
                                   </Button>
                                 )}
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingTeam(team);
-                                    setIsEditTeamModalOpen(true);
-                                  }}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setEditingTeam(team);
+                          setIsEditTeamModalOpen(true);
+                        }}
                                   className="flex-1 sm:flex-none text-xs sm:text-sm"
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => handleDeleteTeam(team._id)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteTeam(team._id)}
                                   className="flex-1 sm:flex-none text-xs sm:text-sm"
-                                >
-                                  Delete
-                                </Button>
+                      >
+                        Delete
+                      </Button>
                               </>
                             );
                           } else {
@@ -1086,7 +1086,7 @@ const Dashboard = () => {
                                     <svg className="w-5 h-5 text-lava-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                  </div>
+                    </div>
                                   <div className="flex-1">
                                     <p className="text-sm font-semibold text-lava-orange mb-1">
                                       Team Member
@@ -1094,7 +1094,7 @@ const Dashboard = () => {
                                     <p className="text-xs text-gray-300 leading-relaxed">
                                       You joined this team via invitation. Only the team leader can edit or delete the team.
                                     </p>
-                                  </div>
+                  </div>
                                 </div>
                                 <Button
                                   variant="danger"
@@ -1155,9 +1155,9 @@ const Dashboard = () => {
                 <p className="text-gray-500 text-sm mb-6">Create your own team or join an existing one to start participating in tournaments</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button
-                  variant="primary"
-                  onClick={() => setIsTeamModalOpen(true)}
+              <Button
+                variant="primary"
+                onClick={() => setIsTeamModalOpen(true)}
                   className="px-8 py-3 w-full sm:w-auto"
                 >
                   + Create Team
@@ -1168,7 +1168,7 @@ const Dashboard = () => {
                   className="px-8 py-3 w-full sm:w-auto"
                 >
                   Join Team
-                </Button>
+              </Button>
               </div>
             </div>
           )}
@@ -1186,7 +1186,7 @@ const Dashboard = () => {
             <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
               <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-lava-orange">
                 Match Join Details
-              </h2>
+            </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {upcomingSchedules.map((schedule) => {
                   const matchDate = new Date(schedule.matchDate);
@@ -1200,14 +1200,14 @@ const Dashboard = () => {
                   const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
 
                   return (
-                    <div
-                      key={schedule._id}
+                <div
+                  key={schedule._id}
                       className="bg-lava-black border border-lava-orange/20 rounded-lg p-3 sm:p-4 hover:border-lava-orange transition-all"
-                    >
+                >
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-3">
                         <h3 className="font-bold text-base sm:text-lg break-words">
                           {schedule.tournamentId?.name || schedule.tournamentId?.name || "Tournament"}
-                        </h3>
+                  </h3>
                         <span className="bg-lava-orange text-lava-black px-2 py-1 rounded text-xs font-bold">
                           {schedule.tournamentId?.game || schedule.gameType}
                         </span>
@@ -1229,32 +1229,32 @@ const Dashboard = () => {
                         </div>
                       )}
 
-                      <div className="space-y-3">
-                        <div>
+                  <div className="space-y-3">
+                    <div>
                           <label className="text-xs text-gray-400">🎮 Game ID</label>
-                          <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1">
                             <span className="text-lava-orange font-mono font-bold">
                               {schedule.gameId}
-                            </span>
-                            <button
-                              onClick={() => {
+                        </span>
+                        <button
+                          onClick={() => {
                                 navigator.clipboard.writeText(schedule.gameId);
                                 alert("Game ID copied!");
-                              }}
-                              className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                        </div>
-                        <div>
+                          }}
+                          className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <div>
                           <label className="text-xs text-gray-400">🔑 Password</label>
-                          <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1">
                             <span className="text-lava-orange font-mono font-bold">
                               {schedule.password}
-                            </span>
-                            <button
-                              onClick={() => {
+                        </span>
+                        <button
+                          onClick={() => {
                                 navigator.clipboard.writeText(schedule.password);
                                 alert("Password copied!");
                               }}
@@ -1440,31 +1440,31 @@ const Dashboard = () => {
                                         <button
                                           onClick={() => {
                                             navigator.clipboard.writeText(matchScheduleDetails[tournament._id || tournament.id].gameId);
-                                            alert("Game ID copied!");
-                                          }}
-                                          className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
-                                        >
-                                          Copy
-                                        </button>
-                                      </div>
-                                    </div>
-                                    <div>
+                            alert("Game ID copied!");
+                          }}
+                          className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <div>
                                       <label className="text-xs text-gray-400">Password:</label>
-                                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1">
                                         <span className="text-lava-orange font-mono font-bold text-lg">
                                           {matchScheduleDetails[tournament._id || tournament.id].password}
-                                        </span>
-                                        <button
-                                          onClick={() => {
+                        </span>
+                        <button
+                          onClick={() => {
                                             navigator.clipboard.writeText(matchScheduleDetails[tournament._id || tournament.id].password);
-                                            alert("Password copied!");
-                                          }}
-                                          className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
-                                        >
-                                          Copy
-                                        </button>
-                                      </div>
-                                    </div>
+                            alert("Password copied!");
+                          }}
+                          className="px-2 py-1 bg-lava-orange text-lava-black text-xs font-bold rounded hover:bg-fiery-yellow transition-colors"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
                                     {matchScheduleDetails[tournament._id || tournament.id].tournamentType && (
                                       <div>
                                         <label className="text-xs text-gray-400">Type:</label>
@@ -1472,8 +1472,8 @@ const Dashboard = () => {
                                           <span className="text-off-white font-semibold text-lg">
                                             {matchScheduleDetails[tournament._id || tournament.id].tournamentType}
                                           </span>
-                                        </div>
-                                      </div>
+                  </div>
+                </div>
                                     )}
                                   </div>
                                 ) : (
@@ -1557,12 +1557,12 @@ const Dashboard = () => {
                             👥 {tournament.registeredTeams || 0}/{tournament.maxTeams || 'N/A'} teams registered
                           </p>
                         )}
-                      </div>
+                  </div>
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
                         <div className="text-left sm:text-right">
                           <div className="text-fiery-yellow font-bold text-lg sm:text-xl">
                             ₹{tournament.prizePool?.toLocaleString() || '0'}
-                          </div>
+                  </div>
                           <div className="text-xs text-gray-400">Prize Pool</div>
                         </div>
                         {hasJoined ? (
@@ -1573,19 +1573,19 @@ const Dashboard = () => {
                           >
                             ✓ Joined
                           </Button>
-                        ) : (
-                          <Button
-                            variant="primary"
-                            onClick={() => {
-                              setSelectedTournament(tournament);
-                              setIsRegistrationModalOpen(true);
-                            }}
+                  ) : (
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setSelectedTournament(tournament);
+                        setIsRegistrationModalOpen(true);
+                      }}
                             className="whitespace-nowrap w-full sm:w-auto text-xs sm:text-sm"
-                          >
+                    >
                             Join Now
-                          </Button>
-                        )}
-                      </div>
+                    </Button>
+                  )}
+                </div>
                     </div>
                   </div>
                 );
@@ -1667,8 +1667,8 @@ const Dashboard = () => {
               // Fallback: update the team in the list
               setMyTeams((prevTeams) => {
                 return prevTeams.map((team) =>
-                  team._id === updatedTeam._id ? updatedTeam : team
-                );
+                team._id === updatedTeam._id ? updatedTeam : team
+            );
               });
             }
             setIsEditTeamModalOpen(false);

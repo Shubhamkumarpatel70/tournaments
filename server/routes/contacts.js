@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
 });
 
 // Get all contact queries (Admin only)
-router.get('/', auth, authorize('admin'), async (req, res) => {
+router.get('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const contacts = await Contact.find()
       .sort({ createdAt: -1 });
@@ -39,7 +39,7 @@ router.get('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update contact status (Admin only)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { status } = req.body;
     const contact = await Contact.findByIdAndUpdate(
@@ -59,7 +59,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete contact query (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const contact = await Contact.findByIdAndDelete(req.params.id);
 

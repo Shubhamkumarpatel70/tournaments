@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get all tournament types (Admin - includes inactive)
-router.get('/admin', auth, authorize('admin'), async (req, res) => {
+router.get('/admin', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const tournamentTypes = await TournamentType.find().sort({ game: 1, name: 1 });
     res.json(tournamentTypes);
@@ -32,7 +32,7 @@ router.get('/admin', auth, authorize('admin'), async (req, res) => {
 });
 
 // Create tournament type (Admin only)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, game, description } = req.body;
 
@@ -61,7 +61,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update tournament type (Admin only)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, game, description, isActive } = req.body;
     const tournamentType = await TournamentType.findById(req.params.id);
@@ -85,7 +85,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete tournament type (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const tournamentType = await TournamentType.findByIdAndDelete(req.params.id);
     if (!tournamentType) {

@@ -10,8 +10,15 @@ import EditTeamModal from "../components/EditTeamModal";
 import InvitationCountdown from "../components/InvitationCountdown";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  
+  // Check if user is registered/authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/register');
+    }
+  }, [user, authLoading, navigate]);
   const [stats, setStats] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [myTournaments, setMyTournaments] = useState([]);
@@ -32,6 +39,7 @@ const Dashboard = () => {
   const [isEditTeamModalOpen, setIsEditTeamModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showAllMatches, setShowAllMatches] = useState(false);
   const [showArchive, setShowArchive] = useState(false); // Toggle for archive view
 
   const [loading, setLoading] = useState(true);
@@ -41,6 +49,13 @@ const Dashboard = () => {
   const [referralData, setReferralData] = useState(null);
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [convertingPoints, setConvertingPoints] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [invitingTeam, setInvitingTeam] = useState(null);
+  const [invitingMember, setInvitingMember] = useState(false);
+  const [invitationLink, setInvitationLink] = useState('');
+  const [invitationCode, setInvitationCode] = useState('');
+  const [invitationExpiresAt, setInvitationExpiresAt] = useState(null);
+  const [referralLink, setReferralLink] = useState('');
 
   // Update current time every second for timer
   useEffect(() => {
@@ -172,10 +187,14 @@ const Dashboard = () => {
             game: schedule.tournamentId?.game || schedule.gameType || 'Unknown'
           }));
 
-        // Combine and sort by date
+        // Combine and sort by creation date (most recently added first)
         const allUpcoming = [...upcomingTournaments, ...upcomingSchedules]
-          .sort((a, b) => a.displayDate - b.displayDate)
-          .slice(0, 5);
+          .sort((a, b) => {
+            // Sort by creation date (newest first) for "recent added match"
+            const dateA = new Date(a.createdAt || a.displayDate || 0);
+            const dateB = new Date(b.createdAt || b.displayDate || 0);
+            return dateB - dateA; // Descending order (newest first)
+          });
         
         setUpcomingMatches(allUpcoming);
 
@@ -315,6 +334,49 @@ const Dashboard = () => {
     });
   };
 
+  const handleInviteMember = async () => {
+    if (!invitingTeam) {
+      return;
+    }
+
+    setInvitingMember(true);
+    try {
+      const response = await api.post('/team-invitations/create', {
+        teamId: invitingTeam._id
+      });
+
+      setInvitationLink(response.data.invitationLink);
+      setInvitationCode(response.data.invitationCode);
+      setInvitationExpiresAt(response.data.expiresAt);
+      
+      // Also fetch referral link to include in share
+      try {
+        const referralResponse = await api.get('/referrals/my-code');
+        if (referralResponse.data && referralResponse.data.referralLink) {
+          // Store referral link for sharing
+          setReferralLink(referralResponse.data.referralLink);
+        }
+      } catch (refError) {
+        console.error('Error fetching referral link:', refError);
+        // Continue without referral link
+      }
+    } catch (error) {
+      console.error('Error creating invitation:', error);
+      alert(error.response?.data?.error || 'Failed to create invitation link. Please try again.');
+    } finally {
+      setInvitingMember(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Link copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy link. Please copy manually.');
+    });
+  };
+
   const handleDeleteTeam = async (teamId) => {
     if (window.confirm("Are you sure you want to delete this team? This action cannot be undone.")) {
       try {
@@ -359,12 +421,16 @@ const Dashboard = () => {
     setNotifications((prev) => prev.filter((n) => n.type !== "team"));
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-lava-black">
         <div className="text-lava-orange text-xl">Loading...</div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // Will redirect to register via useEffect
   }
 
   return (
@@ -377,9 +443,14 @@ const Dashboard = () => {
             </h1>
             <p className="text-gray-400 text-sm sm:text-base">Your Tournament Dashboard</p>
           </div>
-          <Button variant="primary" onClick={() => setIsTeamModalOpen(true)} className="w-full sm:w-auto">
-            + Create Team
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <Button variant="primary" onClick={() => setIsTeamModalOpen(true)} className="flex-1 sm:flex-none">
+              + Create Team
+            </Button>
+            <Button variant="secondary" onClick={() => navigate('/join-team')} className="flex-1 sm:flex-none">
+              Join Team
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -522,7 +593,7 @@ const Dashboard = () => {
               <div className="bg-lava-black/50 rounded-lg p-4">
                 <p className="text-gray-400 text-sm mb-2">Referral Points</p>
                 <p className="text-2xl font-bold text-lava-orange">{referralData.referralPoints || 0} Points</p>
-                <p className="text-xs text-gray-500 mt-1">10 Points = ₹1 | 1 Referral = 100 Points | Minimum ₹100 to withdraw</p>
+                <p className="text-xs text-gray-500 mt-1">10 Points = ₹1 | 1 Referral = 100 Points</p>
               </div>
             </div>
             <div className="bg-lava-black/50 rounded-lg p-4 mb-4">
@@ -582,10 +653,6 @@ const Dashboard = () => {
                   variant="primary"
                   onClick={async () => {
                     const rupeesToAdd = (referralData.referralPoints || 0) / 10;
-                    if (rupeesToAdd < 100) {
-                      alert(`Minimum withdrawal amount is ₹100. You need ${1000 - (referralData.referralPoints || 0)} more points to withdraw.`);
-                      return;
-                    }
                     if (window.confirm(`Convert ${referralData.referralPoints} points to ₹${rupeesToAdd.toFixed(2)} in your wallet?`)) {
                       setConvertingPoints(true);
                       try {
@@ -615,118 +682,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Game ID Profile Section */}
-        {user && user._id && (
-        <div className="mb-6 sm:mb-8 bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6" data-game-id-section>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-lava-orange mb-2">Your Game ID</h2>
-              <p className="text-gray-400 text-sm mb-2">
-                Your Game ID is required to join teams. This is your in-game username or player ID from BGMI, Free Fire, etc.
-              </p>
-              <div className="bg-lava-black/50 rounded p-3 text-xs text-gray-400">
-                <p className="font-semibold mb-1 text-fiery-yellow">💡 What to enter:</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li><strong>BGMI:</strong> Your character name (e.g., "ProGamer", "Player123")</li>
-                  <li><strong>Free Fire:</strong> Your player ID or username (e.g., "FFPlayer", "1234567890")</li>
-                  <li>This is the same ID you use when logging into the game</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          {!editingGameId ? (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="flex-1">
-                {gameIdValue ? (
-                  <div>
-                    <p className="text-gray-400 text-sm mb-1">Current Game ID:</p>
-                    <p className="text-lava-orange font-mono font-bold text-lg">{gameIdValue}</p>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-fiery-yellow font-semibold mb-1">⚠️ Game ID not set</p>
-                    <p className="text-gray-400 text-sm">You need to set your Game ID before joining a team.</p>
-                  </div>
-                )}
-              </div>
-              <Button
-                variant="secondary"
-                onClick={() => setEditingGameId(true)}
-                className="w-full sm:w-auto"
-              >
-                {gameIdValue ? 'Edit Game ID' : 'Set Game ID'}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-bold mb-2 text-gray-400">Game ID *</label>
-                <input
-                  type="text"
-                  value={gameIdValue}
-                  onChange={(e) => setGameIdValue(e.target.value)}
-                  placeholder="e.g., Player123, MyGameID, 1234567890"
-                  className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter your in-game username or player ID from BGMI, Free Fire, etc. This is the name/ID you use to play the game.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  onClick={async () => {
-                    try {
-                      // Use stored user ID or get from user context (handle both _id and id)
-                      let userId = currentUserId || user?._id || user?.id;
-                      
-                      if (!userId) {
-                        // Fetch from API as fallback
-                        const currentUserResponse = await userAPI.getCurrentUser();
-                        userId = currentUserResponse.data?._id || currentUserResponse.data?.id;
-                        if (userId) {
-                          setCurrentUserId(userId);
-                        }
-                      }
-                      
-                      if (!userId) {
-                        alert('User information not available. Please refresh the page.');
-                        return;
-                      }
-                      
-                      await api.put(`/users/${userId}`, { gameId: gameIdValue.trim() });
-                      setEditingGameId(false);
-                      // Refresh user data
-                      const userResponse = await userAPI.getCurrentUser();
-                      setGameIdValue(userResponse.data?.gameId || '');
-                      const refreshedUserId = userResponse.data?._id || userResponse.data?.id || null;
-                      setCurrentUserId(refreshedUserId);
-                    } catch (error) {
-                      alert(error.response?.data?.error || 'Failed to update Game ID');
-                    }
-                  }}
-                  className="flex-1 sm:flex-none"
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setEditingGameId(false);
-                    // Reset to original value
-                    setGameIdValue(user?.gameId || '');
-                  }}
-                  className="flex-1 sm:flex-none"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-        )}
-
         {/* Team Invitations */}
         {teamInvitations.length > 0 && (
           <div className="mb-6 sm:mb-8 bg-charcoal border border-lava-orange/30 rounded-lg p-4 sm:p-6">
@@ -750,19 +705,7 @@ const Dashboard = () => {
                         try {
                           // Check if user has Game ID before accepting
                           if (!user?.gameId || user.gameId.trim() === '') {
-                            const shouldSet = window.confirm(
-                              'You need to set your Game ID before joining a team. Would you like to set it now?'
-                            );
-                            if (shouldSet) {
-                              setEditingGameId(true);
-                              // Scroll to Game ID section
-                              setTimeout(() => {
-                                const gameIdSection = document.querySelector('[data-game-id-section]');
-                                if (gameIdSection) {
-                                  gameIdSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                              }, 100);
-                            }
+                            alert('You need to set your Game ID before joining a team. Please set it in your profile settings.');
                             return;
                           }
                           await api.post(`/team-invitations/${invitation._id}/accept`);
@@ -774,18 +717,7 @@ const Dashboard = () => {
                         } catch (error) {
                           const errorMsg = error.response?.data?.error || 'Failed to accept invitation';
                           if (errorMsg.includes('Game ID')) {
-                            const shouldSet = window.confirm(
-                              'You need to set your Game ID before joining a team. Would you like to set it now?'
-                            );
-                            if (shouldSet) {
-                              setEditingGameId(true);
-                              setTimeout(() => {
-                                const gameIdSection = document.querySelector('[data-game-id-section]');
-                                if (gameIdSection) {
-                                  gameIdSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                              }, 100);
-                            }
+                            alert('You need to set your Game ID before joining a team. Please set it in your profile settings.');
                           } else {
                             alert(errorMsg);
                           }
@@ -824,20 +756,29 @@ const Dashboard = () => {
               <h2 className="text-xl sm:text-2xl font-bold text-lava-orange">
                 Upcoming Matches
               </h2>
-              {upcomingMatches.length > 0 && (
-                <Link to="/upcoming-matches">
+              {upcomingMatches.length > 1 && (
+                <div className="flex gap-2">
                   <Button 
                     variant="secondary" 
                     className="text-xs sm:text-sm w-full sm:w-auto"
+                    onClick={() => setShowAllMatches(!showAllMatches)}
                   >
-                    View All
+                    {showAllMatches ? 'Show Less' : 'View All'}
                   </Button>
-                </Link>
+                  <Link to="/upcoming-matches">
+                    <Button 
+                      variant="secondary" 
+                      className="text-xs sm:text-sm w-full sm:w-auto"
+                    >
+                      View All Page
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
             {upcomingMatches.length > 0 ? (
               <div className="space-y-4">
-                {upcomingMatches.map((item) => {
+                {(showAllMatches ? upcomingMatches : upcomingMatches.slice(0, 1)).map((item) => {
                   // Check if any team has registered for this tournament
                   const tournamentId = item._id || item.id;
                   const hasJoined = item.type === 'tournament' && hasTeamRegistered(tournamentId);
@@ -953,17 +894,25 @@ const Dashboard = () => {
             </h2>
             {notifications.length > 0 ? (
               <div className="space-y-3">
-                {notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className="bg-lava-black border border-lava-orange/20 rounded-lg p-3"
-                  >
-                    <p className="text-sm text-off-white">{notif.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(notif.time).toLocaleTimeString()}
-                    </p>
-                  </div>
-                ))}
+                {notifications
+                  .sort((a, b) => new Date(b.time) - new Date(a.time)) // Sort by most recent first
+                  .slice(0, 3) // Show only top 3
+                  .map((notif) => (
+                    <div
+                      key={notif.id}
+                      className="bg-lava-black border border-lava-orange/20 rounded-lg p-3"
+                    >
+                      <p className="text-sm text-off-white">{notif.message}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(notif.time).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  ))}
+                {notifications.length > 3 && (
+                  <p className="text-xs text-gray-400 text-center pt-2">
+                    +{notifications.length - 3} more notification{notifications.length - 3 > 1 ? 's' : ''}
+                  </p>
+                )}
               </div>
             ) : (
               <p className="text-gray-400 text-center py-8 text-sm">
@@ -978,14 +927,24 @@ const Dashboard = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-lava-orange">My Teams</h2>
             {myTeams.length > 0 && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setIsTeamModalOpen(true)}
-                className="w-full sm:w-auto"
-              >
-                + Create Team
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setIsTeamModalOpen(true)}
+                  className="flex-1 sm:flex-none"
+                >
+                  + Create Team
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate('/join-team')}
+                  className="flex-1 sm:flex-none"
+                >
+                  Join Team
+                </Button>
+              </div>
             )}
           </div>
           {myTeams.length > 0 ? (
@@ -1026,26 +985,102 @@ const Dashboard = () => {
                       )}
                     </div>
                     {!team.isTerminated && (
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setEditingTeam(team);
-                            setIsEditTeamModalOpen(true);
-                          }}
-                          className="flex-1 sm:flex-none text-xs sm:text-sm"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleDeleteTeam(team._id)}
-                          className="flex-1 sm:flex-none text-xs sm:text-sm"
-                        >
-                          Delete
-                        </Button>
+                      <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                        {/* Check if current user is the team captain */}
+                        {(() => {
+                          const currentUserId = user?._id || user?.id;
+                          const captainId = team.captain?._id || team.captain || team.captain?.toString();
+                          const isCaptain = currentUserId && captainId && 
+                            (currentUserId.toString() === captainId.toString() || 
+                             currentUserId === captainId);
+                          
+                          if (isCaptain) {
+                            // Show all buttons for captain
+                            return (
+                              <>
+                                {team.members.length < 4 && (
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={() => {
+                                      setInvitingTeam(team);
+                                      setInvitationLink('');
+                                      setInvitationCode('');
+                                      setInvitationExpiresAt(null);
+                                      setReferralLink('');
+                                      setShowInviteModal(true);
+                                    }}
+                                    className="flex-1 sm:flex-none text-xs sm:text-sm"
+                                  >
+                                    Invite
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingTeam(team);
+                                    setIsEditTeamModalOpen(true);
+                                  }}
+                                  className="flex-1 sm:flex-none text-xs sm:text-sm"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteTeam(team._id)}
+                                  className="flex-1 sm:flex-none text-xs sm:text-sm"
+                                >
+                                  Delete
+                                </Button>
+                              </>
+                            );
+                          } else {
+                            // User joined via invite - show improved UI with leave option
+                            return (
+                              <div className="w-full space-y-3">
+                                <div className="bg-lava-black/50 border border-lava-orange/20 rounded-lg p-3 flex items-start gap-3">
+                                  <div className="flex-shrink-0 mt-0.5">
+                                    <svg className="w-5 h-5 text-lava-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-semibold text-lava-orange mb-1">
+                                      Team Member
+                                    </p>
+                                    <p className="text-xs text-gray-300 leading-relaxed">
+                                      You joined this team via invitation. Only the team leader can edit or delete the team.
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (window.confirm('Are you sure you want to leave this team? You will need to be re-invited to join again.')) {
+                                      try {
+                                        await api.post(`/teams/${team._id}/leave`);
+                                        // Refresh teams list
+                                        const teamsResponse = await api.get("/teams/my-teams");
+                                        const updatedTeams = teamsResponse.data || [];
+                                        setMyTeams(updatedTeams);
+                                        alert('You have successfully left the team');
+                                      } catch (error) {
+                                        console.error('Error leaving team:', error);
+                                        alert(error.response?.data?.error || 'Failed to leave team. Please try again.');
+                                      }
+                                    }
+                                  }}
+                                  className="w-full sm:w-auto text-xs sm:text-sm"
+                                >
+                                  Leave Team
+                                </Button>
+                              </div>
+                            );
+                          }
+                        })()}
                       </div>
                     )}
                     {team.isTerminated && (
@@ -1076,15 +1111,24 @@ const Dashboard = () => {
               <div className="mb-4">
                 <div className="text-6xl mb-4">👥</div>
                 <p className="text-gray-400 mb-2 text-lg">You don't have any teams yet</p>
-                <p className="text-gray-500 text-sm mb-6">Create a team to start participating in tournaments</p>
+                <p className="text-gray-500 text-sm mb-6">Create your own team or join an existing one to start participating in tournaments</p>
               </div>
-              <Button
-                variant="primary"
-                onClick={() => setIsTeamModalOpen(true)}
-                className="px-8 py-3"
-              >
-                Create Your First Team
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Button
+                  variant="primary"
+                  onClick={() => setIsTeamModalOpen(true)}
+                  className="px-8 py-3 w-full sm:w-auto"
+                >
+                  + Create Team
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate('/join-team')}
+                  className="px-8 py-3 w-full sm:w-auto"
+                >
+                  Join Team
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -1590,6 +1634,172 @@ const Dashboard = () => {
             setEditingTeam(null);
           }}
         />
+      )}
+
+      {/* Invite Team Member Modal */}
+      {showInviteModal && invitingTeam && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-lava-orange">Invite Team Member</h2>
+              <button
+                onClick={() => {
+                  setShowInviteModal(false);
+                  setInvitingTeam(null);
+                  setInvitationLink('');
+                  setInvitationCode('');
+                  setInvitationExpiresAt(null);
+                  setReferralLink('');
+                }}
+                className="text-gray-400 hover:text-off-white text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Team Details */}
+            <div className="mb-6 p-4 bg-lava-black/50 border border-lava-orange/20 rounded-lg">
+              <h3 className="text-lg font-bold text-lava-orange mb-3">Team Details</h3>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-gray-400">Team Name:</span>
+                  <span className="text-off-white font-semibold ml-2">{invitingTeam.name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Game:</span>
+                  <span className="text-off-white font-semibold ml-2">{invitingTeam.game}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Team Leader:</span>
+                  <span className="text-off-white font-semibold ml-2">
+                    {invitingTeam.members && invitingTeam.members.length > 0 
+                      ? invitingTeam.members[0].name 
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Members ({invitingTeam.members?.length || 0}/4):</span>
+                  <div className="mt-2 space-y-1">
+                    {invitingTeam.members && invitingTeam.members.map((member, idx) => (
+                      <div key={idx} className="text-xs text-gray-300 flex items-center gap-2">
+                        <span className="text-lava-orange font-bold">{idx + 1}.</span>
+                        <span>{member.name}</span>
+                        <span className="text-gray-500">({member.gameId})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Invitation Link Section */}
+            {invitationLink ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-lava-black/50 border border-lava-orange/20 rounded-lg">
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">
+                    Invitation Link
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={invitationLink}
+                      readOnly
+                      className="flex-1 bg-lava-black border border-lava-orange/30 rounded-lg px-4 py-2 text-off-white text-sm"
+                    />
+                    <button
+                      onClick={() => copyToClipboard(invitationLink)}
+                      className="px-4 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                {invitationCode && (
+                  <div className="p-4 bg-lava-black/50 border border-lava-orange/20 rounded-lg">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">
+                      Invitation Code
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={invitationCode}
+                        readOnly
+                        className="flex-1 bg-lava-black border border-lava-orange/30 rounded-lg px-4 py-2 text-off-white text-sm font-mono text-center"
+                      />
+                      <button
+                        onClick={() => copyToClipboard(invitationCode)}
+                        className="px-4 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {invitationExpiresAt && (
+                  <div className="text-xs text-gray-400 text-center">
+                    Link expires: {new Date(invitationExpiresAt).toLocaleString()}
+                  </div>
+                )}
+                {referralLink && (
+                  <div className="p-4 bg-lava-black/50 border border-lava-orange/20 rounded-lg">
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">
+                      Referral Link (Share Together)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={referralLink}
+                        readOnly
+                        className="flex-1 bg-lava-black border border-lava-orange/30 rounded-lg px-4 py-2 text-off-white text-sm"
+                      />
+                      <button
+                        onClick={() => copyToClipboard(referralLink)}
+                        className="px-4 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <div className="text-sm text-gray-300 text-center">
+                  Share both links with others to join your team and earn referral rewards!
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-gray-300 text-center">
+                  Click the button below to generate an invitation link that you can share with others.
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              {!invitationLink ? (
+                <button
+                  onClick={handleInviteMember}
+                  disabled={invitingMember}
+                  className="flex-1 px-4 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {invitingMember ? 'Generating...' : 'Generate Invitation Link'}
+                </button>
+              ) : null}
+              <button
+                onClick={() => {
+                  setShowInviteModal(false);
+                  setInvitingTeam(null);
+                  setInvitationLink('');
+                  setInvitationCode('');
+                  setInvitationExpiresAt(null);
+                  setReferralLink('');
+                }}
+                disabled={invitingMember}
+                className={`${invitationLink ? 'flex-1' : 'flex-1'} px-4 py-2 bg-transparent text-off-white border-2 border-lava-orange font-bold rounded-lg hover:bg-lava-orange hover:text-lava-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {invitationLink ? 'Close' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

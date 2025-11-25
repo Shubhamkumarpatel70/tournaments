@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get all payment options (Admin only)
-router.get('/all', auth, authorize('admin'), async (req, res) => {
+router.get('/all', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const paymentOptions = await PaymentOption.find()
       .populate('createdBy', 'name email')
@@ -27,7 +27,7 @@ router.get('/all', auth, authorize('admin'), async (req, res) => {
 });
 
 // Create payment option (Admin only)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, type, details, qrCode, isActive } = req.body;
 
@@ -48,7 +48,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update payment option (Admin only)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const paymentOption = await PaymentOption.findByIdAndUpdate(
       req.params.id,
@@ -65,7 +65,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete payment option (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const paymentOption = await PaymentOption.findByIdAndDelete(req.params.id);
     if (!paymentOption) {

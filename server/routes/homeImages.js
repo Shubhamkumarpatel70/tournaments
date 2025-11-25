@@ -14,7 +14,7 @@ router.get('/active', async (req, res) => {
 });
 
 // Get all home images (Admin)
-router.get('/', auth, authorize('admin'), async (req, res) => {
+router.get('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const homeImages = await HomeImage.find().sort({ updatedAt: -1 });
     res.json(homeImages);
@@ -24,7 +24,7 @@ router.get('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Create home image (Admin)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { imageUrl } = req.body;
 
@@ -49,7 +49,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update home image (Admin)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { imageUrl, isActive } = req.body;
     const homeImage = await HomeImage.findById(req.params.id);
@@ -77,7 +77,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete home image (Admin)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const homeImage = await HomeImage.findByIdAndDelete(req.params.id);
     if (!homeImage) {

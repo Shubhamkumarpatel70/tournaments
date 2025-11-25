@@ -3,11 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import { tournamentAPI } from '../utils/api';
 import api from '../utils/api';
 import Button from '../components/Button';
+import TournamentRegistrationModal from '../components/TournamentRegistrationModal';
 
 const UpcomingMatches = () => {
   const { user } = useAuth();
   const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTournament, setSelectedTournament] = useState(null);
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -177,8 +180,19 @@ const UpcomingMatches = () => {
                       <div className="text-fiery-yellow font-bold text-3xl mb-2">
                         ₹{item.prizePool?.toLocaleString()}
                       </div>
-                      <Button variant="primary" className="w-full md:w-auto">
-                         Join Now
+                      <Button 
+                        variant="primary" 
+                        className="w-full md:w-auto"
+                        onClick={() => {
+                          if (user) {
+                            setSelectedTournament(item);
+                            setIsRegistrationModalOpen(true);
+                          } else {
+                            window.location.href = '/login';
+                          }
+                        }}
+                      >
+                        Join Now
                       </Button>
                     </div>
                   )}
@@ -193,6 +207,22 @@ const UpcomingMatches = () => {
           </div>
         )}
       </div>
+
+      {selectedTournament && (
+        <TournamentRegistrationModal
+          isOpen={isRegistrationModalOpen}
+          onClose={() => {
+            setIsRegistrationModalOpen(false);
+            setSelectedTournament(null);
+          }}
+          tournament={selectedTournament}
+          onSuccess={() => {
+            setIsRegistrationModalOpen(false);
+            setSelectedTournament(null);
+            fetchData(); // Refresh the data after successful registration
+          }}
+        />
+      )}
     </div>
   );
 };

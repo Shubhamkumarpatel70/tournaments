@@ -8,7 +8,7 @@ import InvitationCountdown from '../components/InvitationCountdown';
 const JoinTeam = () => {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [invitation, setInvitation] = useState(null);
   const [team, setTeam] = useState(null);
@@ -23,6 +23,10 @@ const JoinTeam = () => {
       if (!user) {
         setError('Please login to join a team');
         setLoading(false);
+        // Redirect to register if not logged in
+        setTimeout(() => {
+          navigate('/register');
+        }, 2000);
         return;
       }
 
@@ -34,11 +38,8 @@ const JoinTeam = () => {
         if (response.data.invitation && response.data.invitation.expiresAt) {
           setExpiresAt(response.data.invitation.expiresAt);
         }
-        // Check if user has Game ID
-        if (user && (!user.gameId || user.gameId.trim() === '')) {
-          setNeedsGameId(true);
-          setGameIdValue(user.gameId || '');
-        }
+        // Initialize game ID value
+        setGameIdValue(user?.gameId || '');
       } catch (error) {
         setError(error.response?.data?.error || 'Invalid or expired invitation code');
       } finally {
@@ -74,10 +75,11 @@ const JoinTeam = () => {
       }
       
       await api.put(`/users/${userId}`, { gameId: gameIdValue.trim() });
+      // Refresh user data to get updated gameId
+      const updatedUser = await refreshUser();
+      setGameIdValue(updatedUser?.gameId || gameIdValue.trim());
       setNeedsGameId(false);
       setSettingGameId(false);
-      // Update user in context by refreshing
-      window.location.reload(); // Simple way to refresh user data
     } catch (error) {
       setSettingGameId(false);
       alert(error.response?.data?.error || 'Failed to update Game ID');
@@ -85,22 +87,46 @@ const JoinTeam = () => {
   };
 
   const handleAccept = async () => {
-    // Check if Game ID is still needed
-    if (needsGameId && (!gameIdValue || gameIdValue.trim() === '')) {
-      setNeedsGameId(true);
+    // Get the current game ID value (from input or user's existing gameId)
+    const currentGameId = gameIdValue || user?.gameId || '';
+    
+    // Check if Game ID is provided
+    if (!currentGameId.trim()) {
+      setError('Please enter your Game ID before joining the team');
       return;
     }
     
     try {
-      await api.post(`/team-invitations/accept-code/${code}`);
+      // If game ID has changed or is new, update it first
+      if (currentGameId.trim() !== (user?.gameId || '').trim()) {
+        setSettingGameId(true);
+        try {
+          let userId = user?._id || user?.id;
+          if (!userId) {
+            const currentUserResponse = await userAPI.getCurrentUser();
+            userId = currentUserResponse.data?._id || currentUserResponse.data?.id;
+          }
+          
+          if (userId) {
+            await api.put(`/users/${userId}`, { gameId: currentGameId.trim() });
+            await refreshUser();
+          }
+        } catch (updateError) {
+          console.error('Error updating game ID:', updateError);
+          // Continue anyway, the backend will check game ID
+        } finally {
+          setSettingGameId(false);
+        }
+      }
+      
+      // Accept the invitation
+      const response = await api.post(`/team-invitations/accept-code/${code}`);
       alert('Successfully joined the team!');
-      navigate('/dashboard');
+      // Refresh the page to show the team in dashboard
+      window.location.href = '/dashboard';
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'Failed to accept invitation';
-      if (errorMsg.includes('Game ID')) {
-        setNeedsGameId(true);
-      }
-      alert(errorMsg);
+      setError(errorMsg);
     }
   };
 
@@ -151,10 +177,44 @@ const JoinTeam = () => {
             </div>
           )}
           
+          {/* User Info with Editable Game ID */}
+          {user && (
+            <div className="bg-lava-black border border-lava-orange/20 rounded-lg p-4 mb-4">
+              <h3 className="text-lg font-bold text-lava-orange mb-3">Your Information</h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="text-gray-400">Name:</span>
+                  <span className="text-off-white font-semibold ml-2">{user.name || 'N/A'}</span>
+                </div>
+                <div>
+                  <label className="block text-gray-400 mb-2">Game ID *</label>
+                  <input
+                    type="text"
+                    value={gameIdValue || user.gameId || ''}
+                    onChange={(e) => {
+                      setGameIdValue(e.target.value);
+                      setNeedsGameId(false);
+                    }}
+                    placeholder="Enter your Game ID (e.g., Player123, 1234567890)"
+                    className="w-full px-4 py-2 bg-charcoal border border-lava-orange/30 rounded-lg text-off-white placeholder-gray-500 focus:outline-none focus:border-lava-orange focus:ring-2 focus:ring-lava-orange/20"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Your in-game username or player ID from BGMI, Free Fire, etc.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {team && (
             <div className="bg-lava-black border border-lava-orange/20 rounded-lg p-6 mb-6">
               <h2 className="text-xl font-bold text-off-white mb-4">{team.name}</h2>
               <div className="space-y-2">
+                {team.members && team.members.length > 0 && (
+                  <p className="text-gray-400">
+                    <span className="text-lava-orange font-semibold">Team Leader:</span> {team.members[0].name}
+                  </p>
+                )}
                 <p className="text-gray-400">
                   <span className="text-lava-orange font-semibold">Game:</span> {team.game}
                 </p>
@@ -177,49 +237,9 @@ const JoinTeam = () => {
             </div>
           )}
 
-          {/* Game ID Required Section */}
-          {needsGameId && (
-            <div className="bg-fiery-yellow/10 border-2 border-fiery-yellow/50 rounded-lg p-6 mb-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="text-2xl">⚠️</div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-fiery-yellow mb-2">Game ID Required</h3>
-                  <p className="text-gray-300 text-sm mb-4">
-                    You need to set your Game ID before joining this team. This is your in-game username/ID from BGMI, Free Fire, etc.
-                  </p>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-bold mb-2 text-gray-300">Your Game ID *</label>
-                      <input
-                        type="text"
-                        value={gameIdValue}
-                        onChange={(e) => setGameIdValue(e.target.value)}
-                        placeholder="e.g., Player123, MyGameID, 1234567890"
-                        className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
-                      />
-                      <p className="text-xs text-gray-400 mt-1">
-                        Enter your in-game username or player ID from BGMI, Free Fire, etc. This is the name/ID you use to play the game.
-                      </p>
-                      <div className="mt-2 p-2 bg-lava-black/50 rounded text-xs text-gray-400">
-                        <p className="font-semibold mb-1">💡 Examples:</p>
-                        <ul className="list-disc list-inside space-y-1 ml-2">
-                          <li><strong>BGMI:</strong> Your character name (e.g., "ProGamer", "Player123")</li>
-                          <li><strong>Free Fire:</strong> Your player ID or username (e.g., "FFPlayer", "1234567890")</li>
-                          <li>This is the same ID you use when logging into the game</li>
-                        </ul>
-                      </div>
-                    </div>
-                    <Button
-                      variant="primary"
-                      onClick={handleSetGameId}
-                      disabled={settingGameId || !gameIdValue.trim()}
-                      className="w-full sm:w-auto"
-                    >
-                      {settingGameId ? 'Saving...' : 'Save Game ID & Continue'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+          {error && !error.includes('Invalid or expired') && (
+            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4 text-red-400 text-sm">
+              {error}
             </div>
           )}
 
@@ -228,14 +248,15 @@ const JoinTeam = () => {
               variant="primary"
               onClick={handleAccept}
               className="flex-1"
-              disabled={needsGameId}
+              disabled={settingGameId || !(gameIdValue || user?.gameId || '').trim()}
             >
-              {needsGameId ? 'Set Game ID First' : 'Accept Invitation'}
+              {settingGameId ? 'Saving...' : 'Accept Invitation'}
             </Button>
             <Button
               variant="secondary"
               onClick={handleReject}
               className="flex-1"
+              disabled={settingGameId}
             >
               Reject
             </Button>

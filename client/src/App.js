@@ -22,6 +22,7 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AccountantDashboard from './pages/AccountantDashboard';
 import JoinTeam from './pages/JoinTeam';
+import JoinTeamByCode from './pages/JoinTeamByCode';
 import Wallet from './pages/Wallet';
 import AllUserWallets from './pages/AllUserWallets';
 import AllWithdrawalRequests from './pages/AllWithdrawalRequests';
@@ -75,9 +76,17 @@ function App() {
                 } 
               />
               <Route 
+                path="/join-team" 
+                element={
+                  <ProtectedRoute>
+                    <JoinTeamByCode />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
                 path="/admin/dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'co-admin']}>
                     <AdminDashboard />
                   </ProtectedRoute>
                 } 

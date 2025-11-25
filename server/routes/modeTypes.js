@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get all mode types (Admin - includes inactive)
-router.get('/admin', auth, authorize('admin'), async (req, res) => {
+router.get('/admin', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const modeTypes = await ModeType.find().sort({ game: 1, name: 1 });
     res.json(modeTypes);
@@ -27,7 +27,7 @@ router.get('/admin', auth, authorize('admin'), async (req, res) => {
 });
 
 // Create mode type (Admin only)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, game, description } = req.body;
 
@@ -56,7 +56,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update mode type (Admin only)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, game, description, isActive } = req.body;
     const modeType = await ModeType.findById(req.params.id);
@@ -80,7 +80,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete mode type (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const modeType = await ModeType.findByIdAndDelete(req.params.id);
     if (!modeType) {

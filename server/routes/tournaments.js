@@ -108,7 +108,7 @@ const parseDate = (dateString) => {
 };
 
 // Create tournament (admin only)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, game, tournamentType, mode, date, matchDate, registrationDeadline, entryFee, prizePool, playerSpots, maxTeams, description, rules } = req.body;
 
@@ -149,7 +149,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete tournament (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const tournament = await Tournament.findByIdAndDelete(req.params.id);
     if (!tournament) {

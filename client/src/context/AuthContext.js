@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { authAPI } from '../utils/api';
+import { authAPI, userAPI } from '../utils/api';
 
 export const AuthContext = createContext();
 
@@ -39,6 +39,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await userAPI.getCurrentUser();
+      console.log('Refresh user response:', response.data);
+      const userData = {
+        id: response.data._id || response.data.id,
+        _id: response.data._id || response.data.id,
+        name: response.data.name,
+        username: response.data.username,
+        email: response.data.email,
+        role: response.data.role,
+        gameId: response.data.gameId || ''
+      };
+      console.log('Setting user data:', userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      return userData;
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -46,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, refreshUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

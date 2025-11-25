@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get all social links (admin only)
-router.get('/all', auth, authorize('admin'), async (req, res) => {
+router.get('/all', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const socials = await Social.find()
       .sort({ order: 1, createdAt: -1 });
@@ -39,7 +39,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create social link (admin only)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, icon, link, order } = req.body;
 
@@ -65,7 +65,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update social link (admin only)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, icon, link, isActive, order } = req.body;
 
@@ -91,7 +91,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete social link (admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const social = await Social.findByIdAndDelete(req.params.id);
     if (!social) {

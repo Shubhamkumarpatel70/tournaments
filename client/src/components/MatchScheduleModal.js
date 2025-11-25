@@ -123,10 +123,24 @@ const MatchScheduleModal = ({ isOpen, onClose, onSuccess, schedule, matchSchedul
     setLoading(true);
 
     try {
+      // Convert datetime-local value to ISO string with timezone to prevent timezone shifts
+      const convertToISO = (datetimeLocal) => {
+        if (!datetimeLocal) return '';
+        // datetime-local format: YYYY-MM-DDTHH:mm
+        // Create Date object in local timezone, then convert to ISO string
+        const date = new Date(datetimeLocal);
+        return date.toISOString();
+      };
+
+      const submitData = {
+        ...formData,
+        matchDate: convertToISO(formData.matchDate) // Convert to ISO string with timezone
+      };
+
       if (isEditMode) {
-        await api.put(`/match-schedules/${schedule._id}`, formData);
+        await api.put(`/match-schedules/${schedule._id}`, submitData);
       } else {
-        await api.post('/match-schedules', formData);
+        await api.post('/match-schedules', submitData);
       }
       onSuccess();
       setFormData({

@@ -9,15 +9,28 @@ const TournamentTeamsManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
   const [terminateModal, setTerminateModal] = useState({ isOpen: false, team: null, reason: '' });
+  const [games, setGames] = useState([]);
   const [filters, setFilters] = useState({
     status: 'all', // all, active, inactive, disbanded
     terminated: 'all', // all, terminated, not-terminated
-    game: 'all' // all, BGMI, Free Fire, Other
+    game: 'all' // all, or specific game name
   });
 
   useEffect(() => {
     fetchData();
+    fetchGames();
   }, []);
+
+  const fetchGames = async () => {
+    try {
+      const response = await api.get('/games/all');
+      setGames(response.data || []);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      // Fallback to default games if API fails
+      setGames([{ name: 'BGMI' }, { name: 'Free Fire' }]);
+    }
+  };
 
   useEffect(() => {
     // Filter teams based on search query and filters
@@ -33,8 +46,7 @@ const TournamentTeamsManagement = () => {
           member.name?.toLowerCase().includes(query) ||
           member.gameId?.toLowerCase().includes(query)
         );
-        const leaderMatch = team.captain?.name?.toLowerCase().includes(query) ||
-                           team.captain?.email?.toLowerCase().includes(query);
+        const leaderMatch = team.members && team.members.length > 0 && team.members[0]?.name?.toLowerCase().includes(query);
         return nameMatch || gameMatch || memberMatch || leaderMatch;
       });
     }
@@ -200,9 +212,11 @@ const TournamentTeamsManagement = () => {
               className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
             >
               <option value="all">All Games</option>
-              <option value="BGMI">BGMI</option>
-              <option value="Free Fire">Free Fire</option>
-              <option value="Other">Other</option>
+              {games.map((game) => (
+                <option key={game._id || game.name} value={game.name}>
+                  {game.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -255,9 +269,12 @@ const TournamentTeamsManagement = () => {
                     </span>
                   </div>
                   
-                  {team.captain && (
+                  {team.members && team.members.length > 0 && team.members[0] && (
                     <p className="text-sm text-gray-400 mb-2">
-                      Team Leader: {team.captain.name || team.captain.email || 'N/A'}
+                      Team Leader: {team.members[0].name || 'N/A'}
+                      {team.captain && team.captain.email && (
+                        <span className="text-gray-500 ml-2">({team.captain.email})</span>
+                      )}
                     </p>
                   )}
 

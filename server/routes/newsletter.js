@@ -76,7 +76,7 @@ router.get('/check/:email', async (req, res) => {
 });
 
 // Get all newsletter subscribers (Admin only)
-router.get('/', auth, authorize('admin'), async (req, res) => {
+router.get('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { active } = req.query;
     let query = {};
@@ -96,7 +96,7 @@ router.get('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete subscriber (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const subscriber = await Newsletter.findByIdAndDelete(req.params.id);
 

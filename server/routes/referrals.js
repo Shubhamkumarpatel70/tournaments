@@ -197,13 +197,6 @@ router.post('/convert-points', auth, async (req, res) => {
 
     // Convert points to wallet (10 points = 1 rupee)
     const rupeesToAdd = pointsToConvert / 10;
-    
-    // Minimum withdrawal amount: ₹100 (1000 points)
-    if (rupeesToAdd < 100) {
-      return res.status(400).json({ 
-        error: `Minimum withdrawal amount is ₹100. You need ${1000 - pointsToConvert} more points to withdraw.` 
-      });
-    }
     user.wallet.balance = (user.wallet.balance || 0) + rupeesToAdd;
 
     // Create transaction record
@@ -232,20 +225,20 @@ router.post('/convert-points', auth, async (req, res) => {
 });
 
 // Get all referral data for admin
-router.get('/all', auth, authorize(['admin']), async (req, res) => {
+router.get('/all', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     // Additional verification - check role directly from database
     const currentUser = await User.findById(req.user._id).select('role email');
     
-    if (!currentUser || currentUser.role !== 'admin') {
-      console.error('❌ Admin check failed in route handler:', {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'co-admin')) {
+      console.error('❌ Admin/Co-admin check failed in route handler:', {
         userId: req.user._id?.toString(),
         email: currentUser?.email,
         roleFromDB: currentUser?.role,
         roleFromReq: req.user?.role
       });
       return res.status(403).json({ 
-        error: 'Access denied. Admin role required.',
+        error: 'Access denied. Admin or Co-admin role required.',
         debug: { 
           userId: req.user._id?.toString(),
           roleFromDB: currentUser?.role || 'not found',
@@ -261,26 +254,35 @@ router.get('/all', auth, authorize(['admin']), async (req, res) => {
       .select('name email referralCode referralPoints referredUsers referredBy createdAt')
       .sort({ createdAt: -1 });
 
-    const referralData = users.map(user => ({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      referralCode: user.referralCode,
-      referralPoints: user.referralPoints || 0,
-      referredCount: user.referredUsers?.length || 0,
-      referredBy: user.referredBy ? {
-        id: user.referredBy._id,
-        name: user.referredBy.name,
-        email: user.referredBy.email
-      } : null,
-      referredUsers: (user.referredUsers || []).map(u => ({
-        id: u._id,
-        name: u.name,
-        email: u.email,
-        joinedAt: u.createdAt
-      })),
-      joinedAt: user.createdAt
-    }));
+    const referralData = users.map(user => {
+      const referredCount = user.referredUsers?.length || 0;
+      const earnedPoints = referredCount * 100; // 100 points per referral
+      const currentPoints = user.referralPoints || 0;
+      const redeemedPoints = earnedPoints - currentPoints; // Points that have been converted
+      
+      return {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        referralCode: user.referralCode,
+        referralPoints: currentPoints,
+        earnedPoints: earnedPoints,
+        redeemedPoints: redeemedPoints > 0 ? redeemedPoints : 0,
+        referredCount: referredCount,
+        referredBy: user.referredBy ? {
+          id: user.referredBy._id,
+          name: user.referredBy.name,
+          email: user.referredBy.email
+        } : null,
+        referredUsers: (user.referredUsers || []).map(u => ({
+          id: u._id,
+          name: u.name,
+          email: u.email,
+          joinedAt: u.createdAt
+        })),
+        joinedAt: user.createdAt
+      };
+    });
 
     res.json(referralData);
   } catch (error) {
@@ -289,7 +291,7 @@ router.get('/all', auth, authorize(['admin']), async (req, res) => {
 });
 
 // Assign referral codes to all users who don't have one (admin only)
-router.post('/assign-codes', auth, authorize(['admin']), async (req, res) => {
+router.post('/assign-codes', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const usersWithoutCodes = await User.find({ 
       $or: [

@@ -257,14 +257,23 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
       // Only include fields that have values
       const submitData = {};
       
+      // Convert datetime-local values to ISO strings with timezone to prevent timezone shifts
+      const convertToISO = (datetimeLocal) => {
+        if (!datetimeLocal) return '';
+        // datetime-local format: YYYY-MM-DDTHH:mm
+        // Create Date object in local timezone, then convert to ISO string
+        const date = new Date(datetimeLocal);
+        return date.toISOString();
+      };
+
       // Only add fields that are not empty
       if (formData.name) submitData.name = formData.name;
       if (formData.game) submitData.game = formData.game;
       if (formData.tournamentType) submitData.tournamentType = formData.tournamentType;
       if (formData.mode) submitData.mode = formData.mode;
       if (formData.date) submitData.date = formatDateToYYYYMMDD(formData.date);
-      if (formData.matchDate) submitData.matchDate = formData.matchDate; // Already in ISO format from datetime-local
-      if (formData.registrationDeadline) submitData.registrationDeadline = formData.registrationDeadline;
+      if (formData.matchDate) submitData.matchDate = convertToISO(formData.matchDate); // Convert to ISO string with timezone
+      if (formData.registrationDeadline) submitData.registrationDeadline = convertToISO(formData.registrationDeadline); // Convert to ISO string with timezone
       if (formData.entryFee !== undefined && formData.entryFee !== '') submitData.entryFee = formData.entryFee;
       if (formData.prizePool !== undefined && formData.prizePool !== '') submitData.prizePool = formData.prizePool;
       if (formData.playerSpots !== undefined && formData.playerSpots !== '') submitData.playerSpots = formData.playerSpots;

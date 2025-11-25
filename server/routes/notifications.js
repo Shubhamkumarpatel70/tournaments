@@ -5,7 +5,7 @@ const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
 
 // Get all notifications (Admin only)
-router.get('/', auth, authorize('admin'), async (req, res) => {
+router.get('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const notifications = await Notification.find()
       .populate('createdBy', 'name email')
@@ -71,7 +71,7 @@ router.get('/my-notifications', auth, async (req, res) => {
 });
 
 // Create notification (Admin only)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { title, message, type, target, targetUserId, showOnHome, isHomeNotification, expiresAt } = req.body;
 
@@ -95,7 +95,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update notification (Admin only)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const notification = await Notification.findByIdAndUpdate(
       req.params.id,
@@ -112,7 +112,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete notification (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const notification = await Notification.findByIdAndDelete(req.params.id);
     if (!notification) {

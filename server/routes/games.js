@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get all games (Admin only)
-router.get('/all', auth, authorize('admin'), async (req, res) => {
+router.get('/all', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const games = await Game.find().sort({ name: 1 });
     res.json(games);
@@ -24,7 +24,7 @@ router.get('/all', auth, authorize('admin'), async (req, res) => {
 });
 
 // Create game (Admin only)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { name, icon, isActive } = req.body;
 
@@ -42,7 +42,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update game (Admin only)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const game = await Game.findByIdAndUpdate(
       req.params.id,
@@ -59,7 +59,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete game (Admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const game = await Game.findByIdAndDelete(req.params.id);
     if (!game) {

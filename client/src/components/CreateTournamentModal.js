@@ -227,12 +227,20 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       // Convert dates to proper format for backend
       // Use dateInput (YYYY-MM-DD) if available, otherwise convert DD-MM-YY
-      // matchDate and registrationDeadline are already in ISO format from datetime-local
+      // Convert datetime-local values to ISO strings with timezone to prevent timezone shifts
+      const convertToISO = (datetimeLocal) => {
+        if (!datetimeLocal) return '';
+        // datetime-local format: YYYY-MM-DDTHH:mm
+        // Create Date object in local timezone, then convert to ISO string
+        const date = new Date(datetimeLocal);
+        return date.toISOString();
+      };
+
       const submitData = {
         ...formData,
         date: dateInput ? dateInput : (formData.date ? formatDateToYYYYMMDD(formData.date) : ''),
-        matchDate: formData.matchDate, // Already in ISO format from datetime-local
-        registrationDeadline: formData.registrationDeadline // Already in ISO format from datetime-local
+        matchDate: convertToISO(formData.matchDate), // Convert to ISO string with timezone
+        registrationDeadline: convertToISO(formData.registrationDeadline) // Convert to ISO string with timezone
       };
       
       // Validate dates are present

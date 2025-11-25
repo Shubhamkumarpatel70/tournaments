@@ -54,7 +54,7 @@ router.get('/my-teams', auth, async (req, res) => {
 });
 
 // Get all team members (admin only)
-router.get('/all', auth, authorize('admin'), async (req, res) => {
+router.get('/all', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const teamMembers = await Team.find()
       .populate('captain', 'name email')
@@ -220,12 +220,157 @@ router.put('/:id', auth, async (req, res) => {
 
       // Update tournament team
       const teamLeaderIndex = teamLeader || 0;
-      const teamMembers = members.map((member, index) => ({
-        name: member.name.trim(),
-        gameId: member.gameId.trim().toUpperCase(),
-        phoneNumber: index === teamLeaderIndex ? (member.phoneNumber || '').trim() : '',
-        userId: index === teamLeaderIndex ? req.user._id : null
-      }));
+      
+      // Create maps to preserve userIds for invited users
+      // Map 1: by gameId (primary matching)
+      const existingMembersByGameId = new Map();
+      // Map 2: by userId (to track all invited users)
+      const existingMembersByUserId = new Map();
+      // Map 3: by name + gameId combination (fallback matching)
+      const existingMembersByNameGameId = new Map();
+      
+      team.members.forEach(member => {
+        if (member.gameId) {
+          const gameIdUpper = member.gameId.toUpperCase();
+          existingMembersByGameId.set(gameIdUpper, member);
+          
+          // Track by userId for invited users (not captain)
+          if (member.userId && member.userId.toString() !== req.user._id.toString()) {
+            existingMembersByUserId.set(member.userId.toString(), member);
+          }
+          
+          // Track by name+gameId combination for better matching
+          const nameGameIdKey = `${(member.name || '').trim().toUpperCase()}_${gameIdUpper}`;
+          existingMembersByNameGameId.set(nameGameIdKey, member);
+        }
+      });
+
+      // Track which userIds we've already assigned to preserve uniqueness
+      const usedUserIds = new Set();
+      
+      // Pre-fetch User data for gameId lookups (for Strategy 3)
+      const User = require('../models/User');
+      const gameIdToUserMap = new Map();
+      const newMemberGameIds = [...new Set(members.map(m => m.gameId?.trim().toUpperCase()).filter(Boolean))];
+      try {
+        const usersWithGameIds = await User.find({ 
+          gameId: { $in: newMemberGameIds },
+          _id: { $ne: req.user._id } // Exclude captain
+        });
+        usersWithGameIds.forEach(user => {
+          if (user.gameId) {
+            gameIdToUserMap.set(user.gameId.toUpperCase(), user);
+          }
+        });
+      } catch (err) {
+        console.error('Error fetching users by gameId:', err);
+      }
+      
+      // Build new members array, preserving userIds from existing members
+      const teamMembers = members.map((member, index) => {
+        const gameIdUpper = member.gameId.trim().toUpperCase();
+        const memberNameUpper = member.name.trim().toUpperCase();
+        
+        // Team leader always gets the captain's userId
+        if (index === teamLeaderIndex) {
+          return {
+            name: member.name.trim(),
+            gameId: gameIdUpper,
+            phoneNumber: (member.phoneNumber || '').trim(),
+            email: team.members[0]?.email || '',
+            userId: req.user._id
+          };
+        }
+        
+        // For non-leader members, try to preserve userId
+        let userId = null;
+        let email = '';
+        
+        // Strategy 1: Match by gameId (most reliable)
+        const existingByGameId = existingMembersByGameId.get(gameIdUpper);
+        if (existingByGameId && existingByGameId.userId) {
+          const existingUserIdStr = existingByGameId.userId.toString();
+          // Only use if not already assigned and not the captain
+          if (!usedUserIds.has(existingUserIdStr) && existingUserIdStr !== req.user._id.toString()) {
+            userId = existingByGameId.userId;
+            email = existingByGameId.email || '';
+            usedUserIds.add(existingUserIdStr);
+          }
+        }
+        
+        // Strategy 2: If gameId match didn't work, try matching by name+gameId combination
+        if (!userId) {
+          const nameGameIdKey = `${memberNameUpper}_${gameIdUpper}`;
+          const existingByNameGameId = existingMembersByNameGameId.get(nameGameIdKey);
+          if (existingByNameGameId && existingByNameGameId.userId) {
+            const existingUserIdStr = existingByNameGameId.userId.toString();
+            if (!usedUserIds.has(existingUserIdStr) && existingUserIdStr !== req.user._id.toString()) {
+              userId = existingByNameGameId.userId;
+              email = existingByNameGameId.email || '';
+              usedUserIds.add(existingUserIdStr);
+            }
+          }
+        }
+        
+        // Strategy 3: If still no match, try to find by gameId in User collection
+        // This handles cases where gameId was changed but user still exists
+        if (!userId) {
+          const userWithGameId = gameIdToUserMap.get(gameIdUpper);
+          if (userWithGameId) {
+            const userWithGameIdStr = userWithGameId._id.toString();
+            // Check if this user is an existing invited member
+            if (existingMembersByUserId.has(userWithGameIdStr) && !usedUserIds.has(userWithGameIdStr)) {
+              const existingMember = existingMembersByUserId.get(userWithGameIdStr);
+              userId = userWithGameId._id;
+              email = existingMember.email || userWithGameId.email || '';
+              usedUserIds.add(userWithGameIdStr);
+            }
+          }
+        }
+        
+        return {
+          name: member.name.trim(),
+          gameId: gameIdUpper,
+          phoneNumber: '',
+          email: email,
+          userId: userId
+        };
+      });
+
+      // Find all invited users (members with userId who are not the captain) from current team
+      const currentInvitedUserIds = team.members
+        .filter(member => {
+          const memberUserId = member.userId?.toString();
+          return memberUserId && memberUserId !== req.user._id.toString();
+        })
+        .map(member => member.userId?.toString())
+        .filter(id => id);
+
+      // Get user IDs from new members (excluding captain)
+      const newMemberUserIds = teamMembers
+        .map((m, idx) => idx === teamLeaderIndex ? null : m.userId)
+        .filter(id => id !== null)
+        .map(id => id?.toString());
+
+      // Find invited users who are being removed (not in new members list)
+      const removedInvitedUserIds = currentInvitedUserIds.filter(
+        userId => !newMemberUserIds.includes(userId)
+      );
+
+      // Cancel/expire pending invitations for removed invited users
+      if (removedInvitedUserIds.length > 0) {
+        const TeamInvitation = require('../models/TeamInvitation');
+        await TeamInvitation.updateMany(
+          {
+            teamId: team._id,
+            invitedUser: { $in: removedInvitedUserIds },
+            status: { $in: ['pending', 'accepted'] }
+          },
+          {
+            status: 'expired'
+          }
+        );
+      }
 
       team.name = name.trim();
       team.game = game;
@@ -255,12 +400,29 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// Delete team member or tournament team (admin only)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+// Delete team member or tournament team
+// Admin/co-admin can delete any team, users can delete their own teams
+router.delete('/:id', auth, async (req, res) => {
   try {
     const team = await Team.findById(req.params.id);
     if (!team) {
       return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Check if user is admin/co-admin OR if user is the captain of this team
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'co-admin';
+    const isCaptain = team.captain && team.captain.toString() === req.user._id.toString();
+    
+    // For "About Us" team members (have position field), only admin can delete
+    if (team.position) {
+      if (!isAdmin) {
+        return res.status(403).json({ error: 'Access denied. Only admins can delete team members.' });
+      }
+    } else {
+      // For tournament teams, allow deletion if user is admin or captain
+      if (!isAdmin && !isCaptain) {
+        return res.status(403).json({ error: 'Access denied. You can only delete your own team.' });
+      }
     }
     
     await Team.findByIdAndDelete(req.params.id);
@@ -270,8 +432,78 @@ router.delete('/:id', auth, authorize('admin'), async (req, res) => {
   }
 });
 
+// Invite/Add member to tournament team by name and game ID
+router.post('/:id/invite-member', auth, async (req, res) => {
+  try {
+    const { name, gameId } = req.body;
+    const team = await Team.findById(req.params.id);
+    
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Check if this is a tournament team
+    if (!team.game || team.position) {
+      return res.status(400).json({ error: 'This endpoint is only for tournament teams' });
+    }
+
+    // Check if user is the captain
+    if (!team.captain || team.captain.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied. Only the team captain can invite members.' });
+    }
+
+    // Validate input
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!gameId || !gameId.trim()) {
+      return res.status(400).json({ error: 'Game ID is required' });
+    }
+
+    // Check if team is full
+    if (team.members.length >= 4) {
+      return res.status(400).json({ error: 'Team is full. Maximum 4 members allowed.' });
+    }
+
+    // Check for duplicate game ID (case-insensitive)
+    const gameIdUpper = gameId.trim().toUpperCase();
+    const duplicateGameId = team.members.some(
+      member => member.gameId && member.gameId.toUpperCase() === gameIdUpper
+    );
+    if (duplicateGameId) {
+      return res.status(400).json({ error: 'A member with this Game ID already exists in the team.' });
+    }
+
+    // Try to find user by game ID
+    const User = require('../models/User');
+    const invitedUser = await User.findOne({ gameId: gameIdUpper });
+
+    // Add member to team
+    const newMember = {
+      name: name.trim(),
+      gameId: gameIdUpper,
+      email: invitedUser ? invitedUser.email : '',
+      userId: invitedUser ? invitedUser._id : null
+    };
+
+    team.members.push(newMember);
+    await team.save();
+
+    // Populate the team before returning
+    await team.populate('captain', 'name email');
+
+    res.json({ 
+      message: 'Member added to team successfully', 
+      team 
+    });
+  } catch (error) {
+    console.error('Error inviting member:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Terminate tournament team (admin only)
-router.put('/:id/terminate', auth, authorize('admin'), async (req, res) => {
+router.put('/:id/terminate', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { terminationReason } = req.body;
     const team = await Team.findById(req.params.id);
@@ -301,7 +533,7 @@ router.put('/:id/terminate', auth, authorize('admin'), async (req, res) => {
 });
 
 // Unt terminate tournament team (admin only)
-router.put('/:id/unterminate', auth, authorize('admin'), async (req, res) => {
+router.put('/:id/unterminate', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const team = await Team.findById(req.params.id);
     
@@ -320,6 +552,55 @@ router.put('/:id/unterminate', auth, authorize('admin'), async (req, res) => {
     await team.save();
 
     res.json({ message: 'Team termination removed successfully. Team is now active.', team });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Leave team (remove user from team)
+router.post('/:id/leave', auth, async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.id);
+    
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Check if it's a tournament team
+    if (team.position) {
+      return res.status(400).json({ error: 'This endpoint is only for tournament teams' });
+    }
+
+    // Check if user is the captain
+    if (team.captain && team.captain.toString() === req.user._id.toString()) {
+      return res.status(400).json({ error: 'Team leader cannot leave the team. Please delete the team or transfer leadership first.' });
+    }
+
+    // Find the member with the user's ID
+    const memberIndex = team.members.findIndex(
+      member => member.userId && member.userId.toString() === req.user._id.toString()
+    );
+
+    if (memberIndex === -1) {
+      return res.status(404).json({ error: 'You are not a member of this team' });
+    }
+
+    // Remove the member from the team
+    team.members.splice(memberIndex, 1);
+    await team.save();
+
+    // Update team invitation status if exists
+    const TeamInvitation = require('../models/TeamInvitation');
+    await TeamInvitation.updateMany(
+      { 
+        team: team._id, 
+        invitedUser: req.user._id,
+        status: { $in: ['pending', 'accepted'] }
+      },
+      { status: 'expired' }
+    );
+
+    res.json({ message: 'You have successfully left the team', team });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

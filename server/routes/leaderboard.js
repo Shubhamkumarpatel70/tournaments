@@ -195,7 +195,7 @@ router.get('/tournament/:tournamentId', async (req, res) => {
 });
 
 // Admin: Manage leaderboard
-router.get('/admin', auth, authorize('admin'), async (req, res) => {
+router.get('/admin', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const leaderboards = await Leaderboard.find()
       .populate({
@@ -261,7 +261,7 @@ router.get('/admin', auth, authorize('admin'), async (req, res) => {
 });
 
 // Admin: Create/Update leaderboard entry
-router.post('/admin', auth, authorize('admin'), async (req, res) => {
+router.post('/admin', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { teamId, teamName, tournamentId, rank, wins, kills, earnings, kdRatio, game } = req.body;
 
@@ -351,7 +351,7 @@ router.post('/admin', auth, authorize('admin'), async (req, res) => {
 });
 
 // Admin: Delete leaderboard entry
-router.delete('/admin/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/admin/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const leaderboard = await Leaderboard.findByIdAndDelete(req.params.id);
     if (!leaderboard) {

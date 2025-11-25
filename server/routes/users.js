@@ -97,9 +97,9 @@ router.delete('/:id', auth, authorize('admin'), async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Prevent deleting admin users
-    if (user.role === 'admin') {
-      return res.status(400).json({ error: 'Cannot delete admin users' });
+    // Prevent deleting admin and co-admin users
+    if (user.role === 'admin' || user.role === 'co-admin') {
+      return res.status(400).json({ error: 'Cannot delete admin or co-admin users' });
     }
 
     await User.findByIdAndDelete(req.params.id);

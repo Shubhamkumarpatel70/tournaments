@@ -21,7 +21,7 @@ import TournamentTeamsManagement from '../components/TournamentTeamsManagement';
 import SocialManagement from '../components/SocialManagement';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -69,6 +69,10 @@ const AdminDashboard = () => {
   const [walletUsers, setWalletUsers] = useState([]);
   const [filteredWalletUsers, setFilteredWalletUsers] = useState([]);
   const [walletSearchQuery, setWalletSearchQuery] = useState('');
+  const [walletFilters, setWalletFilters] = useState({
+    balanceRange: 'all', // all, zero, low, medium, high
+    sortBy: 'balance-desc' // balance-desc, balance-asc, name-asc, name-desc
+  });
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
   const [selectedUserForMoney, setSelectedUserForMoney] = useState(null);
@@ -81,9 +85,17 @@ const AdminDashboard = () => {
   const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
   const [referralData, setReferralData] = useState([]);
   const [referralSearchQuery, setReferralSearchQuery] = useState('');
+  const [referralFilters, setReferralFilters] = useState({
+    pointsRange: 'all', // all, zero, low, medium, high
+    sortBy: 'points-desc', // points-desc, points-asc, name-asc, name-desc, referrals-desc
+    hasReferrals: 'all' // all, yes, no
+  });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deletingUser, setDeletingUser] = useState(false);
+  const [showReferredUsersModal, setShowReferredUsersModal] = useState(false);
+  const [selectedReferredUsers, setSelectedReferredUsers] = useState([]);
+  const [selectedUserForReferred, setSelectedUserForReferred] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -125,18 +137,64 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (activeTab === 'wallet') {
-      // Filter wallet users based on search
+      let filtered = [...walletUsers];
+      
+      // Apply search filter
       if (walletSearchQuery) {
-        const filtered = walletUsers.filter(user =>
+        filtered = filtered.filter(user =>
           user.name.toLowerCase().includes(walletSearchQuery.toLowerCase()) ||
           user.email.toLowerCase().includes(walletSearchQuery.toLowerCase())
         );
-        setFilteredWalletUsers(filtered);
+      }
+      
+      // Apply balance range filter
+      if (walletFilters.balanceRange !== 'all') {
+        filtered = filtered.filter(user => {
+          const balance = user.wallet?.balance || 0;
+          switch (walletFilters.balanceRange) {
+            case 'zero':
+              return balance === 0;
+            case 'low':
+              return balance > 0 && balance <= 100;
+            case 'medium':
+              return balance > 100 && balance <= 1000;
+            case 'high':
+              return balance > 1000;
+            default:
+              return true;
+          }
+        });
+      }
+      
+      // Apply sorting
+      filtered.sort((a, b) => {
+        const balanceA = a.wallet?.balance || 0;
+        const balanceB = b.wallet?.balance || 0;
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        
+        switch (walletFilters.sortBy) {
+          case 'balance-desc':
+            return balanceB - balanceA;
+          case 'balance-asc':
+            return balanceA - balanceB;
+          case 'name-asc':
+            return nameA.localeCompare(nameB);
+          case 'name-desc':
+            return nameB.localeCompare(nameA);
+          default:
+            return balanceB - balanceA;
+        }
+      });
+      
+      // Show only first 5 if not searching/filtering
+      if (!walletSearchQuery && walletFilters.balanceRange === 'all') {
+        setFilteredWalletUsers(filtered.slice(0, 5));
       } else {
-        setFilteredWalletUsers(walletUsers.slice(0, 5));
+        setFilteredWalletUsers(filtered);
       }
     }
-  }, [walletSearchQuery, walletUsers, activeTab]);
+  }, [walletSearchQuery, walletUsers, walletFilters, activeTab]);
 
   const handleAddMoney = async (e) => {
     e.preventDefault();
@@ -353,10 +411,10 @@ const AdminDashboard = () => {
 
   const fetchReferralData = async () => {
     try {
-      // Check if user is admin before making the request
-      if (user?.role !== 'admin') {
-        console.error('User is not an admin. Current role:', user?.role);
-        alert(`Access denied. Your current role is "${user?.role || 'unknown'}". You need "admin" role to view this data. Please contact an administrator.`);
+      // Check if user is admin or co-admin before making the request
+      if (user?.role !== 'admin' && user?.role !== 'co-admin') {
+        console.error('User is not an admin or co-admin. Current role:', user?.role);
+        alert(`Access denied. Your current role is "${user?.role || 'unknown'}". You need "admin" or "co-admin" role to view this data. Please contact an administrator.`);
         setReferralData([]);
         return;
       }
@@ -382,8 +440,8 @@ const AdminDashboard = () => {
         console.error('Current user role:', user?.role);
         console.error('Required role: admin');
         
-        if (user?.role !== 'admin') {
-          alert(`Access denied. Your current role is "${user?.role || 'unknown'}". You need "admin" role to view this data. Please contact an administrator to update your role.`);
+        if (user?.role !== 'admin' && user?.role !== 'co-admin') {
+          alert(`Access denied. Your current role is "${user?.role || 'unknown'}". You need "admin" or "co-admin" role to view this data. Please contact an administrator to update your role.`);
         } else {
           alert(`Access denied: ${errorMessage}. Please refresh the page and try again. If the issue persists, contact support.`);
         }
@@ -398,15 +456,73 @@ const AdminDashboard = () => {
   };
 
   const getFilteredReferralData = () => {
-    if (!referralSearchQuery) return referralData;
-    const searchLower = referralSearchQuery.toLowerCase();
-    return referralData.filter(user => 
-      user.name?.toLowerCase().includes(searchLower) ||
-      user.email?.toLowerCase().includes(searchLower) ||
-      user.referralCode?.toLowerCase().includes(searchLower) ||
-      user.referredBy?.name?.toLowerCase().includes(searchLower) ||
-      user.referredBy?.email?.toLowerCase().includes(searchLower)
-    );
+    let filtered = [...referralData];
+    
+    // Apply search filter
+    if (referralSearchQuery) {
+      const searchLower = referralSearchQuery.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.name?.toLowerCase().includes(searchLower) ||
+        user.email?.toLowerCase().includes(searchLower) ||
+        user.referralCode?.toLowerCase().includes(searchLower) ||
+        user.referredBy?.name?.toLowerCase().includes(searchLower) ||
+        user.referredBy?.email?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply points range filter
+    if (referralFilters.pointsRange !== 'all') {
+      filtered = filtered.filter(user => {
+        const points = user.referralPoints || 0;
+        switch (referralFilters.pointsRange) {
+          case 'zero':
+            return points === 0;
+          case 'low':
+            return points > 0 && points <= 100;
+          case 'medium':
+            return points > 100 && points <= 1000;
+          case 'high':
+            return points > 1000;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Apply has referrals filter
+    if (referralFilters.hasReferrals !== 'all') {
+      filtered = filtered.filter(user => {
+        const hasRefs = (user.referredCount || 0) > 0;
+        return referralFilters.hasReferrals === 'yes' ? hasRefs : !hasRefs;
+      });
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const pointsA = a.referralPoints || 0;
+      const pointsB = b.referralPoints || 0;
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      const refsA = a.referredCount || 0;
+      const refsB = b.referredCount || 0;
+      
+      switch (referralFilters.sortBy) {
+        case 'points-desc':
+          return pointsB - pointsA;
+        case 'points-asc':
+          return pointsA - pointsB;
+        case 'name-asc':
+          return nameA.localeCompare(nameB);
+        case 'name-desc':
+          return nameB.localeCompare(nameA);
+        case 'referrals-desc':
+          return refsB - refsA;
+        default:
+          return pointsB - pointsA;
+      }
+    });
+    
+    return filtered;
   };
 
   const fetchUsers = async () => {
@@ -446,12 +562,51 @@ const AdminDashboard = () => {
 
   const updateUserRole = async (userId, newRole) => {
     try {
-      await api.put(`/users/${userId}`, { role: newRole });
+      // Convert userId to string for consistent comparison
+      const userIdStr = String(userId);
+      console.log('Updating user role:', { userId: userIdStr, newRole, currentUser: user });
+      
+      await api.put(`/users/${userIdStr}`, { role: newRole });
       await fetchUsers(); // Refresh users list
-      alert('User role updated successfully!');
+      
+      // If the updated user is the current logged-in user, refresh their data
+      const currentUserId = String(user?._id || user?.id || '');
+      const updatedUserId = userIdStr;
+      
+      console.log('Comparing user IDs:', { 
+        currentUserId, 
+        updatedUserId, 
+        match: currentUserId === updatedUserId,
+        currentUserRole: user?.role,
+        newRole
+      });
+      
+      if (currentUserId && updatedUserId && currentUserId === updatedUserId) {
+        try {
+          console.log('Refreshing current user data...');
+          const refreshedUser = await refreshUser();
+          console.log('User refreshed:', refreshedUser);
+          
+          // Check if the role was actually updated
+          if (refreshedUser.role === newRole) {
+            alert(`User role updated successfully! Your role is now "${newRole}". The page will reload to apply the new role.`);
+            // Reload the page after a short delay to ensure the new role is applied
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          } else {
+            alert(`Role update may not have been applied. Expected: "${newRole}", Got: "${refreshedUser.role}". Please log out and log back in.`);
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing current user:', refreshError);
+          alert('User role updated successfully! Please log out and log back in to see the changes.');
+        }
+      } else {
+        alert('User role updated successfully!');
+      }
     } catch (error) {
       console.error('Error updating user role:', error);
-      alert('Failed to update user role. Please try again.');
+      alert(error.response?.data?.error || 'Failed to update user role. Please try again.');
     }
   };
 
@@ -551,7 +706,8 @@ const AdminDashboard = () => {
 
   const [isMatchScheduleModalOpen, setIsMatchScheduleModalOpen] = useState(false);
 
-  const tabs = [
+  // Filter tabs based on user role - co-admin cannot access Manage Users
+  const allTabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'tournaments', label: 'Tournaments' },
     { id: 'tournament-types', label: 'Tournament Types' },
@@ -576,11 +732,16 @@ const AdminDashboard = () => {
     { id: 'social', label: 'Social' }
   ];
 
+  // Filter out 'users' tab for co-admin
+  const tabs = user?.role === 'co-admin' 
+    ? allTabs.filter(tab => tab.id !== 'users')
+    : allTabs;
+
   return (
     <div className="min-h-screen py-12 px-4 page-transition">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-5xl font-bold mb-2 neon-text-cyan">Admin Dashboard</h1>
-        <p className="text-gray-400 mb-8">Welcome, {user?.name} (Admin)</p>
+        <p className="text-gray-400 mb-8">Welcome, {user?.name} ({user?.role === 'co-admin' ? 'Co-Admin' : 'Admin'})</p>
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-6 border-b border-lava-orange/20 pb-4">
@@ -1376,13 +1537,15 @@ const AdminDashboard = () => {
                                     value={user.role || 'user'}
                                     onChange={(e) => {
                                       if (window.confirm(`Are you sure you want to change ${user.name || user.email}'s role to ${e.target.value}?`)) {
-                                        updateUserRole(user._id, e.target.value);
+                                        const userId = user._id || user.id;
+                                        updateUserRole(userId, e.target.value);
                                       }
                                     }}
                                     className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
                                   >
                                     <option value="user">User</option>
                                     <option value="admin">Admin</option>
+                                    <option value="co-admin">Co-Admin</option>
                                     <option value="accountant">Accountant</option>
                                   </select>
                                 </td>
@@ -1409,7 +1572,7 @@ const AdminDashboard = () => {
                                         </span>
                                       </label>
                                     </div>
-                                    {user.role !== 'admin' && (
+                                    {user.role !== 'admin' && user.role !== 'co-admin' && (
                                       <button
                                         onClick={() => handleDeleteClick(user)}
                                         className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600 transition-colors w-fit"
@@ -1572,8 +1735,8 @@ const AdminDashboard = () => {
                   </Button>
                 )}
               </div>
-              {/* Search Box */}
-              <div className="mb-4">
+              {/* Search and Filter Options */}
+              <div className="mb-4 space-y-3">
                 <input
                   type="text"
                   placeholder="Search by name or email..."
@@ -1581,6 +1744,45 @@ const AdminDashboard = () => {
                   onChange={(e) => setWalletSearchQuery(e.target.value)}
                   className="w-full bg-lava-black border border-lava-orange/30 rounded-lg px-4 py-2 text-off-white focus:border-lava-orange focus:outline-none"
                 />
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-400">Balance Range:</label>
+                    <select
+                      value={walletFilters.balanceRange}
+                      onChange={(e) => setWalletFilters({ ...walletFilters, balanceRange: e.target.value })}
+                      className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
+                    >
+                      <option value="all">All Balances</option>
+                      <option value="zero">₹0</option>
+                      <option value="low">₹1 - ₹100</option>
+                      <option value="medium">₹101 - ₹1,000</option>
+                      <option value="high">₹1,000+</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-400">Sort By:</label>
+                    <select
+                      value={walletFilters.sortBy}
+                      onChange={(e) => setWalletFilters({ ...walletFilters, sortBy: e.target.value })}
+                      className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
+                    >
+                      <option value="balance-desc">Balance (High to Low)</option>
+                      <option value="balance-asc">Balance (Low to High)</option>
+                      <option value="name-asc">Name (A to Z)</option>
+                      <option value="name-desc">Name (Z to A)</option>
+                    </select>
+                  </div>
+                  {(walletFilters.balanceRange !== 'all' || walletFilters.sortBy !== 'balance-desc') && (
+                    <div className="flex items-end">
+                      <button
+                        onClick={() => setWalletFilters({ balanceRange: 'all', sortBy: 'balance-desc' })}
+                        className="px-3 py-1 text-sm text-lava-orange hover:text-fiery-yellow transition-colors"
+                      >
+                        Clear Filters
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -1829,15 +2031,15 @@ const AdminDashboard = () => {
         {/* Referrals Tab */}
         {activeTab === 'referrals' && (
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <h2 className="text-2xl font-bold text-lava-orange">Referral System</h2>
               <div className="text-sm text-gray-400">
-                Total Users: {referralData.length}
+                Total Users: {referralData.length} | Showing: {getFilteredReferralData().length}
               </div>
             </div>
             
-            {/* Search */}
-            <div className="mb-4">
+            {/* Search and Filter Options */}
+            <div className="mb-4 space-y-3">
               <input
                 type="text"
                 placeholder="Search by name, email, or referral code..."
@@ -1845,6 +2047,58 @@ const AdminDashboard = () => {
                 onChange={(e) => setReferralSearchQuery(e.target.value)}
                 className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
               />
+              <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-400">Points Range:</label>
+                  <select
+                    value={referralFilters.pointsRange}
+                    onChange={(e) => setReferralFilters({ ...referralFilters, pointsRange: e.target.value })}
+                    className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
+                  >
+                    <option value="all">All Points</option>
+                    <option value="zero">0 Points</option>
+                    <option value="low">1 - 100 Points</option>
+                    <option value="medium">101 - 1,000 Points</option>
+                    <option value="high">1,000+ Points</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-400">Has Referrals:</label>
+                  <select
+                    value={referralFilters.hasReferrals}
+                    onChange={(e) => setReferralFilters({ ...referralFilters, hasReferrals: e.target.value })}
+                    className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
+                  >
+                    <option value="all">All Users</option>
+                    <option value="yes">Has Referrals</option>
+                    <option value="no">No Referrals</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-400">Sort By:</label>
+                  <select
+                    value={referralFilters.sortBy}
+                    onChange={(e) => setReferralFilters({ ...referralFilters, sortBy: e.target.value })}
+                    className="px-3 py-1 bg-lava-black border border-lava-orange/30 rounded text-sm text-off-white focus:outline-none focus:border-lava-orange"
+                  >
+                    <option value="points-desc">Points (High to Low)</option>
+                    <option value="points-asc">Points (Low to High)</option>
+                    <option value="referrals-desc">Referrals (High to Low)</option>
+                    <option value="name-asc">Name (A to Z)</option>
+                    <option value="name-desc">Name (Z to A)</option>
+                  </select>
+                </div>
+                {(referralFilters.pointsRange !== 'all' || referralFilters.hasReferrals !== 'all' || referralFilters.sortBy !== 'points-desc') && (
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => setReferralFilters({ pointsRange: 'all', hasReferrals: 'all', sortBy: 'points-desc' })}
+                      className="px-3 py-1 text-sm text-lava-orange hover:text-fiery-yellow transition-colors"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {getFilteredReferralData().length > 0 ? (
@@ -1856,6 +2110,8 @@ const AdminDashboard = () => {
                       <th className="px-4 py-3 text-left">Email</th>
                       <th className="px-4 py-3 text-left">Referral Code</th>
                       <th className="px-4 py-3 text-left">Points</th>
+                      <th className="px-4 py-3 text-left">Earned Points</th>
+                      <th className="px-4 py-3 text-left">Redeemed Points</th>
                       <th className="px-4 py-3 text-left">Referred By</th>
                       <th className="px-4 py-3 text-left">Referred Users</th>
                       <th className="px-4 py-3 text-left">Joined Date</th>
@@ -1872,6 +2128,12 @@ const AdminDashboard = () => {
                         <td className="px-4 py-3">
                           <span className="text-fiery-yellow font-bold">{user.referralPoints || 0}</span>
                         </td>
+                        <td className="px-4 py-3">
+                          <span className="text-green-400 font-bold">{user.earnedPoints || 0}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-orange-400 font-bold">{user.redeemedPoints || 0}</span>
+                        </td>
                         <td className="px-4 py-3 text-sm">
                           {user.referredBy ? (
                             <div>
@@ -1883,21 +2145,21 @@ const AdminDashboard = () => {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-lava-orange font-bold">{user.referredCount || 0}</div>
-                          {user.referredUsers && user.referredUsers.length > 0 && (
-                            <details className="mt-1">
-                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-lava-orange">
-                                View Details
-                              </summary>
-                              <div className="mt-2 space-y-1 text-xs">
-                                {user.referredUsers.map((refUser) => (
-                                  <div key={refUser.id} className="text-gray-400">
-                                    {refUser.name} ({refUser.email})
-                                  </div>
-                                ))}
-                              </div>
-                            </details>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <div className="text-lava-orange font-bold">{user.referredCount || 0}</div>
+                            {user.referredUsers && user.referredUsers.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  setSelectedReferredUsers(user.referredUsers || []);
+                                  setSelectedUserForReferred(user);
+                                  setShowReferredUsersModal(true);
+                                }}
+                                className="px-2 py-1 text-xs bg-lava-orange text-lava-black font-bold rounded hover:bg-fiery-yellow transition-colors"
+                              >
+                                View
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-400">
                           {(() => {
@@ -2584,6 +2846,84 @@ const AdminDashboard = () => {
                 className="flex-1 px-4 py-2 bg-transparent text-off-white border-2 border-lava-orange font-bold rounded-lg hover:bg-lava-orange hover:text-lava-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 No, Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Referred Users Modal */}
+      {showReferredUsersModal && selectedUserForReferred && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-lava-orange">Referred Users</h2>
+              <button
+                onClick={() => {
+                  setShowReferredUsersModal(false);
+                  setSelectedReferredUsers([]);
+                  setSelectedUserForReferred(null);
+                }}
+                className="text-gray-400 hover:text-off-white text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="mb-4">
+              <p className="text-gray-300">
+                User: <span className="font-bold text-off-white">{selectedUserForReferred.name}</span>
+              </p>
+              <p className="text-gray-400 text-sm">
+                {selectedUserForReferred.email}
+              </p>
+              <p className="text-gray-400 text-sm mt-1">
+                Total Referrals: <span className="text-lava-orange font-bold">{selectedReferredUsers.length}</span>
+              </p>
+            </div>
+            {selectedReferredUsers.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-lava-orange/20">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Name</th>
+                      <th className="px-4 py-3 text-left">Email</th>
+                      <th className="px-4 py-3 text-left">Joined Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedReferredUsers.map((refUser) => (
+                      <tr key={refUser.id} className="border-t border-lava-orange/10 hover:bg-lava-orange/5">
+                        <td className="px-4 py-3 text-off-white">{refUser.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-400">{refUser.email}</td>
+                        <td className="px-4 py-3 text-sm text-gray-400">
+                          {refUser.joinedAt ? (() => {
+                            const date = new Date(refUser.joinedAt);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            return `${day}-${month}-${year}`;
+                          })() : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                No referred users found
+              </div>
+            )}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowReferredUsersModal(false);
+                  setSelectedReferredUsers([]);
+                  setSelectedUserForReferred(null);
+                }}
+                className="px-4 py-2 bg-lava-orange text-lava-black font-bold rounded-lg hover:bg-fiery-yellow transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

@@ -92,8 +92,8 @@ router.post('/:invitationId/accept', auth, async (req, res) => {
       });
     }
 
-    // Add user to team
-    team.members.push({
+    // Add user to team as first member (team leader position)
+    team.members.unshift({
       name: req.user.name,
       gameId: req.user.gameId.trim(),
       email: req.user.email,
@@ -199,8 +199,8 @@ router.post('/accept-code/:code', auth, async (req, res) => {
       invitation.invitedUser = req.user._id;
     }
 
-    // Add user to team
-    team.members.push({
+    // Add user to team as first member (team leader position)
+    team.members.unshift({
       name: req.user.name,
       gameId: req.user.gameId.trim(),
       email: req.user.email,
@@ -246,8 +246,9 @@ router.post('/join/:code', auth, async (req, res) => {
       return res.status(400).json({ error: 'You are already in an active team' });
     }
 
-    // Get team
-    const team = await Team.findById(invitation.teamId._id);
+    // Get team with populated captain
+    const team = await Team.findById(invitation.teamId._id)
+      .populate('captain', 'name email');
     if (!team) {
       return res.status(404).json({ error: 'Team not found' });
     }
@@ -266,30 +267,121 @@ router.post('/join/:code', auth, async (req, res) => {
       return res.status(400).json({ error: 'You are already a member of this team' });
     }
 
-    // Create a new invitation record for this user
-    const userInvitation = new TeamInvitation({
-      teamId: team._id,
-      invitedBy: invitation.invitedBy,
-      invitedUser: req.user._id,
-      invitationCode: code,
-      status: 'pending'
-    });
-
+    // Return team details without creating a new invitation record
+    // The invitation will be accepted when user clicks "Join Now"
     res.json({
       invitation: {
-        ...userInvitation.toObject(),
-        expiresAt: invitation.expiresAt // Include expiration from original invitation
+        _id: invitation._id,
+        invitationCode: code,
+        expiresAt: invitation.expiresAt,
+        status: invitation.status
       },
       team: {
         _id: team._id,
         name: team.name,
         game: team.game,
+        captain: team.captain,
         members: team.members
       },
       message: 'Invitation found. You can now accept or reject it.'
     });
   } catch (error) {
     console.error('Error joining team by code:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create invitation link for a team
+router.post('/create', auth, async (req, res) => {
+  try {
+    const { teamId } = req.body;
+    
+    if (!teamId) {
+      return res.status(400).json({ error: 'Team ID is required' });
+    }
+
+    // Find team and verify user is captain
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // Check if user is the captain
+    if (!team.captain || team.captain.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Access denied. Only the team captain can create invitations.' });
+    }
+
+    // Check if team is full
+    if (team.members.length >= 4) {
+      return res.status(400).json({ error: 'Team is full. Maximum 4 members allowed.' });
+    }
+
+    // Check if there's already a pending invitation for this team
+    let invitation = await TeamInvitation.findOne({
+      teamId: team._id,
+      invitedBy: req.user._id,
+      status: 'pending',
+      expiresAt: { $gt: new Date() }
+    });
+
+    // If no valid invitation exists, create a new one
+    if (!invitation) {
+      let invitationCode;
+      let isUnique = false;
+      
+      // Generate unique invitation code
+      while (!isUnique) {
+        invitationCode = generateInvitationCode();
+        const existing = await TeamInvitation.findOne({ invitationCode });
+        if (!existing) {
+          isUnique = true;
+        }
+      }
+
+      invitation = new TeamInvitation({
+        teamId: team._id,
+        invitedBy: req.user._id,
+        invitationCode: invitationCode,
+        status: 'pending'
+      });
+
+      await invitation.save();
+    }
+
+    // Get frontend URL
+    const getFrontendUrl = (req) => {
+      // Check for environment variable first
+      if (process.env.FRONTEND_URL) {
+        return process.env.FRONTEND_URL;
+      }
+      
+      // Try to get from request origin
+      const origin = req.get('origin');
+      if (origin) {
+        return origin;
+      }
+      
+      // Fallback to localhost for development
+      return 'http://localhost:3000';
+    };
+
+    const frontendUrl = getFrontendUrl(req);
+    const invitationLink = `${frontendUrl}/join-team/${invitation.invitationCode}`;
+
+    res.json({
+      invitationId: invitation._id,
+      invitationCode: invitation.invitationCode,
+      invitationLink: invitationLink,
+      expiresAt: invitation.expiresAt,
+      team: {
+        _id: team._id,
+        name: team.name,
+        game: team.game,
+        members: team.members
+      }
+    });
+  } catch (error) {
+    console.error('Error creating invitation:', error);
     res.status(500).json({ error: error.message });
   }
 });

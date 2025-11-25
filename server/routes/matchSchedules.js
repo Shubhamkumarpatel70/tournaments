@@ -5,7 +5,7 @@ const Tournament = require('../models/Tournament');
 const { auth, authorize } = require('../middleware/auth');
 
 // Get all match schedules (Admin)
-router.get('/all', auth, authorize('admin'), async (req, res) => {
+router.get('/all', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const schedules = await MatchSchedule.find()
       .populate('tournamentId', 'name game')
@@ -62,7 +62,7 @@ router.get('/my-matches', auth, async (req, res) => {
 });
 
 // Create match schedule (Admin)
-router.post('/', auth, authorize('admin'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const { tournamentId, gameType, gameId, password, tournamentType, matchDate } = req.body;
 
@@ -83,7 +83,7 @@ router.post('/', auth, authorize('admin'), async (req, res) => {
 });
 
 // Update match schedule (Admin)
-router.put('/:id', auth, authorize('admin'), async (req, res) => {
+router.put('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const schedule = await MatchSchedule.findByIdAndUpdate(
       req.params.id,
@@ -100,7 +100,7 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 });
 
 // Delete match schedule (Admin)
-router.delete('/:id', auth, authorize('admin'), async (req, res) => {
+router.delete('/:id', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
     const schedule = await MatchSchedule.findByIdAndDelete(req.params.id);
     if (!schedule) {

@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 const SEO = ({
   title = "arenaofchampions - Compete. Win. Dominate. | BGMI & Free Fire Tournaments",
   description = "Join arenaofchampions - India's premier gaming tournament platform. Compete in BGMI and Free Fire tournaments, win massive cash prizes, and dominate the leaderboards.",
-  keywords = "aoc, harshvardhan, bgmi aoc, arenaofchampions, BGMI tournaments, Free Fire tournaments, gaming tournaments, esports, battle royale, mobile gaming, tournament platform",
+  keywords = "Arena of Champions, arena of champions, arenaofchampions, aoc, harshvardhan, harsh vardhan, ranjeet kumar, shubham kumar, quantum university, arena of champions ranjeet kumar, arena of champions harshvardhan, BGMI tournaments, Free Fire tournaments, gaming tournaments, esports, battle royale, mobile gaming, tournament platform, gaming competitions, prize pool, leaderboards, online gaming, competitive gaming, mobile esports, PUBG Mobile, battle royale tournaments, gaming community, esports platform India, BGMI tournament India, Free Fire tournament India, online gaming tournament, mobile esports tournament, competitive gaming platform",
   image = "https://arenaofchampions.in/og-image.jpg",
   url = "https://arenaofchampions.in",
   type = "website",

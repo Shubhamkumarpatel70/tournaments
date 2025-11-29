@@ -203,7 +203,7 @@ router.post('/convert-points', auth, async (req, res) => {
     const transaction = new Transaction({
       userId: user._id,
       type: 'credit',
-      amount: pointsToConvert,
+      amount: rupeesToAdd, // Store rupee amount, not points
       description: `Converted ${pointsToConvert} referral points to wallet`,
       status: 'completed'
     });

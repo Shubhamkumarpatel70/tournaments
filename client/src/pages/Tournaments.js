@@ -382,8 +382,15 @@ const Tournaments = () => {
                         const isRegistrationClosed = registrationDeadline && now > registrationDeadline;
                         const isCompleted = tournament.status === 'completed';
                         const isFull = tournament.registeredTeams >= tournament.maxTeams;
+                        const isJoined = tournament.isJoined;
                         
-                        if (isCompleted) {
+                        if (isJoined) {
+                          return (
+                            <Button variant="secondary" disabled className="w-full lg:w-auto whitespace-nowrap text-xs sm:text-sm bg-green-600 hover:bg-green-600">
+                              ✓ Joined
+                            </Button>
+                          );
+                        } else if (isCompleted) {
                           return (
                             <Button variant="secondary" disabled className="w-full lg:w-auto whitespace-nowrap text-xs sm:text-sm">
                               Game Completed

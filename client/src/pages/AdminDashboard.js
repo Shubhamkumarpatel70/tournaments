@@ -803,7 +803,10 @@ const AdminDashboard = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-fiery-yellow font-bold">₹{tournament.prizePool?.toLocaleString()}</div>
-                      <div className="text-gray-400 text-sm">{tournament.registeredTeams}/{tournament.maxTeams}</div>
+                      {tournament.originalPrizePool && tournament.originalPrizePool !== tournament.prizePool && (
+                        <div className="text-gray-500 text-xs line-through">₹{tournament.originalPrizePool?.toLocaleString()}</div>
+                      )}
+                      <div className="text-gray-400 text-sm">{tournament.registeredTeams}/{tournament.maxTeams} teams</div>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-2">
@@ -1165,17 +1168,64 @@ const AdminDashboard = () => {
           <div className="bg-charcoal border border-lava-orange/30 rounded-lg p-6">
             <h2 className="text-2xl font-bold mb-4 text-lava-orange">Tournament Registrations</h2>
             
+            {/* Statistics Card */}
+            {selectedTournamentForReg && registrations.length > 0 && (() => {
+              const approvedRegistrations = registrations.filter(reg => reg.status === 'approved');
+              const pendingRegistrations = registrations.filter(reg => reg.status === 'pending');
+              
+              const totalTeamsApproved = approvedRegistrations.length;
+              const totalPlayersApproved = approvedRegistrations.reduce((sum, reg) => sum + (reg.numberOfPlayers || 0), 0);
+              const totalTeamsPending = pendingRegistrations.length;
+              const totalPlayersPending = pendingRegistrations.reduce((sum, reg) => sum + (reg.numberOfPlayers || 0), 0);
+              const totalTeams = registrations.length;
+              const totalPlayers = registrations.reduce((sum, reg) => sum + (reg.numberOfPlayers || 0), 0);
+              
+              // Get tournament info
+              const selectedTournament = tournaments.find(t => t._id === selectedTournamentForReg);
+              
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-lava-black border border-lava-orange/30 rounded-lg p-4">
+                    <div className="text-sm text-gray-400 mb-1">Approved Teams</div>
+                    <div className="text-2xl font-bold text-lava-orange">{totalTeamsApproved}</div>
+                    {selectedTournament && (
+                      <div className="text-xs text-gray-500 mt-1">of {selectedTournament.maxTeams} max</div>
+                    )}
+                  </div>
+                  <div className="bg-lava-black border border-lava-orange/30 rounded-lg p-4">
+                    <div className="text-sm text-gray-400 mb-1">Approved Players</div>
+                    <div className="text-2xl font-bold text-green-400">{totalPlayersApproved}</div>
+                    {selectedTournament && (
+                      <div className="text-xs text-gray-500 mt-1">of {selectedTournament.playerSpots} spots</div>
+                    )}
+                  </div>
+                  <div className="bg-lava-black border border-yellow-500/30 rounded-lg p-4">
+                    <div className="text-sm text-gray-400 mb-1">Pending Teams</div>
+                    <div className="text-2xl font-bold text-yellow-400">{totalTeamsPending}</div>
+                    <div className="text-xs text-gray-500 mt-1">Awaiting approval</div>
+                  </div>
+                  <div className="bg-lava-black border border-blue-500/30 rounded-lg p-4">
+                    <div className="text-sm text-gray-400 mb-1">Total Registrations</div>
+                    <div className="text-2xl font-bold text-blue-400">{totalTeams}</div>
+                    <div className="text-xs text-gray-500 mt-1">{totalPlayers} total players</div>
+                  </div>
+                </div>
+              );
+            })()}
+            
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div>
                 <label className="block text-sm font-bold mb-2 text-lava-orange">Tournament</label>
                 <select
+                  value={selectedTournamentForReg || ''}
                   onChange={(e) => {
                     if (e.target.value) {
                       fetchRegistrations(e.target.value);
                     } else {
                       setRegistrations([]);
                       setFilteredRegistrations([]);
+                      setSelectedTournamentForReg(null);
                     }
                   }}
                   className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
@@ -1221,6 +1271,15 @@ const AdminDashboard = () => {
             {selectedTournamentForReg && (
               <div className="mb-4 text-sm text-gray-400">
                 Showing {filteredRegistrations.length} of {registrations.length} registrations
+                {(() => {
+                  const approvedCount = filteredRegistrations.filter(r => r.status === 'approved').length;
+                  const pendingCount = filteredRegistrations.filter(r => r.status === 'pending').length;
+                  return (
+                    <span className="ml-2">
+                      ({approvedCount} approved, {pendingCount} pending)
+                    </span>
+                  );
+                })()}
               </div>
             )}
 

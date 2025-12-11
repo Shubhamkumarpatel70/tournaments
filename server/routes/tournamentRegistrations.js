@@ -4,6 +4,37 @@ const TournamentRegistration = require('../models/TournamentRegistration');
 const Tournament = require('../models/Tournament');
 const { auth, authorize } = require('../middleware/auth');
 
+// Helper function to update tournament prize pool and registered teams count
+async function updateTournamentStats(tournamentId) {
+  try {
+    const tournament = await Tournament.findById(tournamentId);
+    if (!tournament) return;
+
+    // Get all approved registrations for this tournament
+    const approvedRegistrations = await TournamentRegistration.find({
+      tournamentId: tournamentId,
+      status: 'approved'
+    });
+
+    // Calculate total players joined
+    const totalPlayersJoined = approvedRegistrations.reduce((sum, reg) => sum + (reg.numberOfPlayers || 0), 0);
+    
+    // Calculate updated prize pool: Entry Fee × Total Players Joined
+    const updatedPrizePool = tournament.entryFee * totalPlayersJoined;
+    
+    // Count registered teams
+    const registeredTeamsCount = approvedRegistrations.length;
+
+    // Update tournament
+    await Tournament.findByIdAndUpdate(tournamentId, {
+      prizePool: updatedPrizePool,
+      registeredTeams: registeredTeamsCount
+    });
+  } catch (error) {
+    console.error('Error updating tournament stats:', error);
+  }
+}
+
 // Register for tournament
 router.post('/', auth, async (req, res) => {
   try {
@@ -136,10 +167,8 @@ router.put('/:id/approve', auth, authorize('admin', 'accountant'), async (req, r
     registration.status = 'approved';
     await registration.save();
 
-    // Update tournament registered teams count
-    await Tournament.findByIdAndUpdate(registration.tournamentId, {
-      $inc: { registeredTeams: 1 }
-    });
+    // Update tournament prize pool and registered teams count
+    await updateTournamentStats(registration.tournamentId);
 
     res.json(registration);
   } catch (error) {
@@ -156,9 +185,17 @@ router.put('/:id/reject', auth, authorize('admin', 'accountant'), async (req, re
       return res.status(404).json({ error: 'Registration not found' });
     }
 
+    // Only update stats if registration was previously approved
+    const wasApproved = registration.status === 'approved';
+
     registration.status = 'rejected';
     registration.rejectionReason = rejectionReason || '';
     await registration.save();
+
+    // Update tournament prize pool and registered teams count if it was previously approved
+    if (wasApproved) {
+      await updateTournamentStats(registration.tournamentId);
+    }
 
     res.json(registration);
   } catch (error) {

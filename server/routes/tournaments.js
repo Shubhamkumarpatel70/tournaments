@@ -42,7 +42,37 @@ router.get('/', async (req, res) => {
       tournaments = tournaments.slice(0, 6);
     }
 
-    res.json(tournaments);
+    // Check if user has joined any tournaments (if authenticated)
+    let joinedTournamentIds = [];
+    try {
+      const token = req.header('Authorization')?.replace('Bearer ', '');
+      if (token) {
+        const jwt = require('jsonwebtoken');
+        const User = require('../models/User');
+        const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (user) {
+          const TournamentRegistration = require('../models/TournamentRegistration');
+          const userRegistrations = await TournamentRegistration.find({
+            registeredBy: user._id,
+            status: { $in: ['pending', 'approved'] }
+          }).select('tournamentId');
+          joinedTournamentIds = userRegistrations.map(reg => reg.tournamentId.toString());
+        }
+      }
+    } catch (error) {
+      // If token is invalid or user not found, just continue without joined status
+    }
+
+    // Add joined status to tournaments
+    const tournamentsWithJoinedStatus = tournaments.map(tournament => {
+      const tournamentObj = tournament.toObject();
+      tournamentObj.isJoined = joinedTournamentIds.includes(tournament._id.toString());
+      return tournamentObj;
+    });
+
+    res.json(tournamentsWithJoinedStatus);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -55,7 +85,34 @@ router.get('/:id', async (req, res) => {
     if (!tournament) {
       return res.status(404).json({ error: 'Tournament not found' });
     }
-    res.json(tournament);
+    
+    // Check if user has joined this tournament (if authenticated)
+    let isJoined = false;
+    try {
+      const token = req.header('Authorization')?.replace('Bearer ', '');
+      if (token) {
+        const jwt = require('jsonwebtoken');
+        const User = require('../models/User');
+        const TournamentRegistration = require('../models/TournamentRegistration');
+        const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (user) {
+          const userRegistration = await TournamentRegistration.findOne({
+            tournamentId: tournament._id,
+            registeredBy: user._id,
+            status: { $in: ['pending', 'approved'] }
+          });
+          isJoined = !!userRegistration;
+        }
+      }
+    } catch (error) {
+      // If token is invalid or user not found, just continue without joined status
+    }
+    
+    const tournamentObj = tournament.toObject();
+    tournamentObj.isJoined = isJoined;
+    res.json(tournamentObj);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -134,6 +191,7 @@ router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
       registrationDeadline: parsedRegistrationDeadline,
       entryFee,
       prizePool,
+      originalPrizePool: prizePool, // Store original prize pool set by admin
       playerSpots,
       maxTeams,
       description: description || '',
@@ -195,6 +253,19 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tournament not found' });
     }
     
+    // Set originalPrizePool if it doesn't exist (for existing tournaments)
+    if (!existingTournament.originalPrizePool) {
+      updateData.originalPrizePool = existingTournament.prizePool;
+    }
+    
+    // If entryFee is being updated, we need to recalculate prize pool after update
+    const entryFeeChanged = updateData.entryFee !== undefined && updateData.entryFee !== existingTournament.entryFee;
+    
+    // Don't allow manual prizePool updates - it's auto-calculated
+    if (updateData.prizePool !== undefined) {
+      delete updateData.prizePool;
+    }
+    
     const finalMatchDate = updateData.matchDate || existingTournament.matchDate;
     const finalRegistrationDeadline = updateData.registrationDeadline || existingTournament.registrationDeadline;
     
@@ -212,6 +283,22 @@ router.put('/:id', async (req, res) => {
     if (!tournament) {
       return res.status(404).json({ error: 'Tournament not found' });
     }
+    
+    // If entryFee changed, recalculate prize pool
+    if (entryFeeChanged) {
+      const TournamentRegistration = require('../models/TournamentRegistration');
+      const approvedRegistrations = await TournamentRegistration.find({
+        tournamentId: tournament._id,
+        status: 'approved'
+      });
+      const totalPlayersJoined = approvedRegistrations.reduce((sum, reg) => sum + (reg.numberOfPlayers || 0), 0);
+      const updatedPrizePool = tournament.entryFee * totalPlayersJoined;
+      await Tournament.findByIdAndUpdate(tournament._id, { prizePool: updatedPrizePool });
+      // Reload tournament to get updated prize pool
+      const updatedTournament = await Tournament.findById(tournament._id);
+      return res.json(updatedTournament);
+    }
+    
     res.json(tournament);
   } catch (error) {
     res.status(400).json({ error: error.message });

@@ -21,7 +21,7 @@ const tournamentRegistrationSchema = new mongoose.Schema({
   },
   paymentType: {
     type: String,
-    enum: ['UPI', 'Bank Transfer', 'Wallet', 'Card'],
+    enum: ['UPI', 'Bank Transfer', 'Wallet', 'Card', 'QR Code'],
     required: true
   },
   paymentOption: {

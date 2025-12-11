@@ -9,7 +9,7 @@ const tournamentSchema = new mongoose.Schema({
   game: {
     type: String,
     required: true,
-    enum: ['BGMI', 'Free Fire', 'Other']
+    trim: true
   },
   tournamentType: {
     type: String,

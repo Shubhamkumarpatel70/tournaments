@@ -167,7 +167,7 @@ const parseDate = (dateString) => {
 // Create tournament (admin only)
 router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
   try {
-    const { name, game, tournamentType, mode, date, matchDate, registrationDeadline, entryFee, prizePool, playerSpots, maxTeams, description, rules } = req.body;
+    const { name, game, tournamentType, mode, date, matchDate, registrationDeadline, entryFee, prizePool, taxPercentage, playerSpots, maxTeams, description, rules } = req.body;
 
     if (!name || !game || !tournamentType || !mode || !date || !matchDate || !registrationDeadline || !entryFee || !prizePool || !playerSpots || !maxTeams) {
       return res.status(400).json({ error: 'All required fields must be provided' });
@@ -181,6 +181,12 @@ router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
       return res.status(400).json({ error: 'Registration deadline must be before match start time' });
     }
 
+    // Calculate final prize pool after taxes
+    const originalPrizePool = parseFloat(prizePool) || 0;
+    const taxPercent = parseFloat(taxPercentage) || 0;
+    const taxAmount = originalPrizePool * (taxPercent / 100);
+    const finalPrizePool = originalPrizePool - taxAmount;
+
     const tournament = new Tournament({
       name,
       game,
@@ -190,8 +196,10 @@ router.post('/', auth, authorize('admin', 'co-admin'), async (req, res) => {
       matchDate: parsedMatchDate,
       registrationDeadline: parsedRegistrationDeadline,
       entryFee,
-      prizePool,
-      originalPrizePool: prizePool, // Store original prize pool set by admin
+      prizePool: finalPrizePool, // Store final prize pool after taxes
+      originalPrizePool: originalPrizePool, // Store original prize pool before taxes
+      taxPercentage: taxPercent,
+      taxAmount: taxAmount, // Store tax amount
       playerSpots,
       maxTeams,
       description: description || '',
@@ -226,7 +234,7 @@ router.put('/:id', async (req, res) => {
     
     // Only include fields that are actually being updated
     const allowedFields = ['name', 'game', 'tournamentType', 'mode', 'date', 'matchDate', 
-                          'registrationDeadline', 'entryFee', 'prizePool', 'playerSpots', 
+                          'registrationDeadline', 'entryFee', 'prizePool', 'taxPercentage', 'playerSpots', 
                           'maxTeams', 'description', 'rules', 'featured', 'status'];
     
     allowedFields.forEach(field => {
@@ -253,18 +261,24 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tournament not found' });
     }
     
-    // Set originalPrizePool if it doesn't exist (for existing tournaments)
-    if (!existingTournament.originalPrizePool) {
-      updateData.originalPrizePool = existingTournament.prizePool;
+    // Handle prize pool and tax updates
+    const prizePoolChanged = updateData.prizePool !== undefined && updateData.prizePool !== existingTournament.originalPrizePool;
+    const taxPercentageChanged = updateData.taxPercentage !== undefined && updateData.taxPercentage !== existingTournament.taxPercentage;
+    
+    // If prizePool is being updated, treat it as original prize pool and calculate final after taxes
+    if (prizePoolChanged || taxPercentageChanged) {
+      const originalPrizePool = updateData.prizePool !== undefined ? parseFloat(updateData.prizePool) : existingTournament.originalPrizePool || existingTournament.prizePool;
+      const taxPercent = updateData.taxPercentage !== undefined ? parseFloat(updateData.taxPercentage) : existingTournament.taxPercentage || 0;
+      const taxAmount = originalPrizePool * (taxPercent / 100);
+      const finalPrizePool = originalPrizePool - taxAmount;
+      
+      updateData.originalPrizePool = originalPrizePool;
+      updateData.prizePool = finalPrizePool;
+      updateData.taxAmount = taxAmount;
     }
     
     // If entryFee is being updated, we need to recalculate prize pool after update
     const entryFeeChanged = updateData.entryFee !== undefined && updateData.entryFee !== existingTournament.entryFee;
-    
-    // Don't allow manual prizePool updates - it's auto-calculated
-    if (updateData.prizePool !== undefined) {
-      delete updateData.prizePool;
-    }
     
     const finalMatchDate = updateData.matchDate || existingTournament.matchDate;
     const finalRegistrationDeadline = updateData.registrationDeadline || existingTournament.registrationDeadline;
@@ -284,7 +298,7 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tournament not found' });
     }
     
-    // If entryFee changed, recalculate prize pool
+    // If entryFee changed, recalculate prize pool based on registrations
     if (entryFeeChanged) {
       const TournamentRegistration = require('../models/TournamentRegistration');
       const approvedRegistrations = await TournamentRegistration.find({
@@ -292,8 +306,14 @@ router.put('/:id', async (req, res) => {
         status: 'approved'
       });
       const totalPlayersJoined = approvedRegistrations.reduce((sum, reg) => sum + (reg.numberOfPlayers || 0), 0);
-      const updatedPrizePool = tournament.entryFee * totalPlayersJoined;
-      await Tournament.findByIdAndUpdate(tournament._id, { prizePool: updatedPrizePool });
+      const basePrizePool = tournament.entryFee * totalPlayersJoined;
+      const finalTaxPercentage = updateData.taxPercentage !== undefined ? updateData.taxPercentage : tournament.taxPercentage || 0;
+      const taxAmount = basePrizePool * (finalTaxPercentage / 100);
+      const finalPrizePool = basePrizePool - taxAmount;
+      await Tournament.findByIdAndUpdate(tournament._id, { 
+        prizePool: finalPrizePool,
+        taxAmount: taxAmount // Store tax amount
+      });
       // Reload tournament to get updated prize pool
       const updatedTournament = await Tournament.findById(tournament._id);
       return res.json(updatedTournament);

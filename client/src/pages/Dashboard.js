@@ -1409,7 +1409,9 @@ const Dashboard = () => {
                                   <div className="text-fiery-yellow font-bold text-lg sm:text-xl">
                                     ₹{tournament.prizePool?.toLocaleString() || '0'}
                                   </div>
-                                  <div className="text-xs text-gray-400">Prize Pool</div>
+                                  <div className="text-xs text-gray-400">
+                                    Prize Pool{tournament.taxPercentage && tournament.taxPercentage > 0 ? ' (After Taxes)' : ''}
+                                  </div>
                                 </div>
                               </div>
                             </div>

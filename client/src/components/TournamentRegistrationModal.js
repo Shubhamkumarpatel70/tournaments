@@ -226,7 +226,12 @@ const TournamentRegistrationModal = ({ isOpen, onClose, tournament, onSuccess })
 
         <div className="mb-4 p-4 bg-lava-black border border-lava-orange/20 rounded-lg">
           <h3 className="font-bold text-lg mb-2">{tournament.name}</h3>
-          <p className="text-sm text-gray-400 mb-2">Entry Fee: ₹{tournament.entryFee} per player • Prize Pool: ₹{tournament.prizePool?.toLocaleString()}</p>
+          <p className="text-sm text-gray-400 mb-2">
+            Entry Fee: ₹{tournament.entryFee} per player • Prize Pool: ₹{tournament.prizePool?.toLocaleString()}
+            {tournament.taxPercentage && tournament.taxPercentage > 0 && (
+              <span className="text-xs ml-1">(After {tournament.taxPercentage}% Tax)</span>
+            )}
+          </p>
           {formData.numberOfPlayers && tournament.entryFee && (
             <div className="mt-3 p-3 bg-lava-orange/10 border border-lava-orange/30 rounded-lg">
               <div className="flex justify-between items-center">

@@ -374,7 +374,9 @@ const Tournaments = () => {
                     <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between lg:justify-start gap-3 sm:gap-2 min-w-[120px] sm:min-w-[140px]">
                       <div className="text-left lg:text-right">
                         <div className="text-fiery-yellow font-bold text-lg sm:text-xl md:text-2xl">₹{tournament.prizePool?.toLocaleString()}</div>
-                        <div className="text-xs text-gray-400">Prize Pool</div>
+                        <div className="text-xs text-gray-400">
+                          Prize Pool{tournament.taxPercentage && tournament.taxPercentage > 0 ? ' (After Taxes)' : ''}
+                        </div>
                       </div>
                       {(() => {
                         const now = new Date();

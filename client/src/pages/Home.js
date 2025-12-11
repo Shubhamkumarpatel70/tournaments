@@ -268,7 +268,12 @@ const Home = () => {
                         </span>
                       )}
                     </div>
-                    <span className="text-fiery-yellow font-bold text-sm sm:text-base md:text-lg">₹{tournament.prizePool?.toLocaleString()}</span>
+                    <div className="text-right">
+                      <span className="text-fiery-yellow font-bold text-sm sm:text-base md:text-lg">₹{tournament.prizePool?.toLocaleString()}</span>
+                      {tournament.taxPercentage && tournament.taxPercentage > 0 && (
+                        <div className="text-xs text-gray-400">After Taxes</div>
+                      )}
+                    </div>
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">{tournament.name}</h3>
                   {tournament.description && (

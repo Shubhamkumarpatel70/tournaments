@@ -13,6 +13,7 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
     registrationDeadline: '',
     entryFee: '',
     prizePool: '',
+    taxPercentage: '',
     playerSpots: '',
     maxTeams: '',
     description: '',
@@ -78,6 +79,12 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
         return `${year}-${month}-${day}T${hours}:${minutes}`;
       };
 
+      // Calculate original prize pool from current prize pool and tax percentage
+      const currentPrizePool = tournament.prizePool || 0;
+      const taxPercent = tournament.taxPercentage || 0;
+      // Reverse calculate: if prizePool = original - (original * tax%), then original = prizePool / (1 - tax%/100)
+      const originalPrizePool = taxPercent > 0 ? currentPrizePool / (1 - taxPercent / 100) : currentPrizePool;
+      
       setFormData({
         name: tournament.name || '',
         game: tournament.game || '',
@@ -87,7 +94,8 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
         matchDate: formatDateTimeForInput(tournament.matchDate), // Use datetime-local format for matchDate
         registrationDeadline: tournament.registrationDeadline ? formatDateTimeLocal(tournament.registrationDeadline) : '',
         entryFee: tournament.entryFee || '',
-        prizePool: tournament.prizePool || '',
+        prizePool: originalPrizePool || '', // Show original prize pool (before taxes) for editing
+        taxPercentage: tournament.taxPercentage !== undefined && tournament.taxPercentage !== null ? tournament.taxPercentage : '',
         playerSpots: tournament.playerSpots || '',
         maxTeams: tournament.maxTeams || '',
         description: tournament.description || '',
@@ -276,6 +284,10 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
       if (formData.registrationDeadline) submitData.registrationDeadline = convertToISO(formData.registrationDeadline); // Convert to ISO string with timezone
       if (formData.entryFee !== undefined && formData.entryFee !== '') submitData.entryFee = formData.entryFee;
       if (formData.prizePool !== undefined && formData.prizePool !== '') submitData.prizePool = formData.prizePool;
+      // Always include taxPercentage, even if it's 0 or empty (to allow clearing taxes)
+      if (formData.taxPercentage !== undefined) {
+        submitData.taxPercentage = formData.taxPercentage === '' ? 0 : parseFloat(formData.taxPercentage) || 0;
+      }
       if (formData.playerSpots !== undefined && formData.playerSpots !== '') submitData.playerSpots = formData.playerSpots;
       if (formData.maxTeams !== undefined && formData.maxTeams !== '') submitData.maxTeams = formData.maxTeams;
       if (formData.description !== undefined) submitData.description = formData.description;
@@ -466,6 +478,49 @@ const EditTournamentModal = ({ isOpen, onClose, tournament, onSuccess }) => {
                 required
                 className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
               />
+              <p className="text-xs text-gray-400 mt-1">Enter prize pool before taxes</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold mb-2">Tax Percentage (%)</label>
+              <input
+                type="number"
+                name="taxPercentage"
+                value={formData.taxPercentage}
+                onChange={handleChange}
+                min="0"
+                max="100"
+                step="0.01"
+                placeholder="0"
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+              />
+              <p className="text-xs text-gray-400 mt-1">Optional: Enter tax percentage (e.g., 20 for 20%)</p>
+              
+              {/* Display final prize pool after taxes */}
+              {formData.prizePool && formData.taxPercentage && parseFloat(formData.prizePool) > 0 && parseFloat(formData.taxPercentage) > 0 && (
+                <div className="mt-3 p-3 bg-lava-orange/10 border border-lava-orange/30 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-300">Original Prize Pool:</span>
+                      <span className="text-sm font-bold text-off-white">₹{parseFloat(formData.prizePool || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-300">Tax ({formData.taxPercentage}%):</span>
+                      <span className="text-sm font-bold text-red-400">
+                        - ₹{(parseFloat(formData.prizePool || 0) * parseFloat(formData.taxPercentage || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="border-t border-lava-orange/30 pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-bold text-lava-orange">Final Prize Pool After Taxes:</span>
+                        <span className="text-lg font-bold text-fiery-yellow">
+                          ₹{(parseFloat(formData.prizePool || 0) * (1 - parseFloat(formData.taxPercentage || 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

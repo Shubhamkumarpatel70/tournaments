@@ -19,15 +19,21 @@ async function updateTournamentStats(tournamentId) {
     // Calculate total players joined
     const totalPlayersJoined = approvedRegistrations.reduce((sum, reg) => sum + (reg.numberOfPlayers || 0), 0);
     
-    // Calculate updated prize pool: Entry Fee × Total Players Joined
-    const updatedPrizePool = tournament.entryFee * totalPlayersJoined;
+    // Calculate base prize pool: Entry Fee × Total Players Joined
+    const basePrizePool = tournament.entryFee * totalPlayersJoined;
+    
+    // Apply taxes if tax percentage is set
+    const taxPercentage = tournament.taxPercentage || 0;
+    const taxAmount = basePrizePool * (taxPercentage / 100);
+    const finalPrizePool = basePrizePool - taxAmount;
     
     // Count registered teams
     const registeredTeamsCount = approvedRegistrations.length;
 
     // Update tournament
     await Tournament.findByIdAndUpdate(tournamentId, {
-      prizePool: updatedPrizePool,
+      prizePool: finalPrizePool,
+      taxAmount: taxAmount, // Store tax amount
       registeredTeams: registeredTeamsCount
     });
   } catch (error) {

@@ -45,6 +45,18 @@ const tournamentSchema = new mongoose.Schema({
     type: Number,
     required: false // Will be set to prizePool on creation
   },
+  taxPercentage: {
+    type: Number,
+    required: false,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  taxAmount: {
+    type: Number,
+    required: false,
+    default: 0
+  },
   playerSpots: {
     type: Number,
     required: true

@@ -159,7 +159,9 @@ const UpcomingMatches = () => {
                       ) : (
                         <>
                           <div>
-                            <p className="text-gray-400 text-sm mb-1">💰 Prize Pool</p>
+                            <p className="text-gray-400 text-sm mb-1">
+                              💰 Prize Pool{item.taxPercentage && item.taxPercentage > 0 ? ' (After Taxes)' : ''}
+                            </p>
                             <p className="text-fiery-yellow font-bold text-xl">
                               ₹{item.prizePool?.toLocaleString() || '0'}
                             </p>
@@ -179,6 +181,9 @@ const UpcomingMatches = () => {
                     <div className="text-center md:text-right">
                       <div className="text-fiery-yellow font-bold text-3xl mb-2">
                         ₹{item.prizePool?.toLocaleString()}
+                        {item.taxPercentage && item.taxPercentage > 0 && (
+                          <span className="text-xs text-gray-400 ml-1">(After Taxes)</span>
+                        )}
                       </div>
                       <Button 
                         variant="primary" 

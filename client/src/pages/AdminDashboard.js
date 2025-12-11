@@ -806,6 +806,9 @@ const AdminDashboard = () => {
                       {tournament.originalPrizePool && tournament.originalPrizePool !== tournament.prizePool && (
                         <div className="text-gray-500 text-xs line-through">₹{tournament.originalPrizePool?.toLocaleString()}</div>
                       )}
+                      {tournament.taxPercentage && tournament.taxPercentage > 0 && (
+                        <div className="text-gray-500 text-xs">After {tournament.taxPercentage}% Tax</div>
+                      )}
                       <div className="text-gray-400 text-sm">{tournament.registeredTeams}/{tournament.maxTeams} teams</div>
                     </div>
                   </div>

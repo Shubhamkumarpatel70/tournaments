@@ -13,6 +13,7 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     registrationDeadline: '',
     entryFee: '',
     prizePool: '',
+    taxPercentage: '',
     playerSpots: '',
     maxTeams: '',
     description: '',
@@ -240,7 +241,9 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
         ...formData,
         date: dateInput ? dateInput : (formData.date ? formatDateToYYYYMMDD(formData.date) : ''),
         matchDate: convertToISO(formData.matchDate), // Convert to ISO string with timezone
-        registrationDeadline: convertToISO(formData.registrationDeadline) // Convert to ISO string with timezone
+        registrationDeadline: convertToISO(formData.registrationDeadline), // Convert to ISO string with timezone
+        // Ensure taxPercentage is a number, default to 0 if empty
+        taxPercentage: formData.taxPercentage === '' ? 0 : (parseFloat(formData.taxPercentage) || 0)
       };
       
       // Validate dates are present
@@ -262,6 +265,7 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
         registrationDeadline: '',
         entryFee: '',
         prizePool: '',
+        taxPercentage: '',
         playerSpots: '',
         maxTeams: '',
         description: '',
@@ -431,6 +435,48 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
                 required
                 className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold mb-2">Tax Percentage (%)</label>
+              <input
+                type="number"
+                name="taxPercentage"
+                value={formData.taxPercentage}
+                onChange={handleChange}
+                min="0"
+                max="100"
+                step="0.01"
+                placeholder="0"
+                className="w-full px-4 py-2 bg-lava-black border border-lava-orange/30 rounded-lg text-off-white focus:outline-none focus:border-lava-orange"
+              />
+              <p className="text-xs text-gray-400 mt-1">Optional: Enter tax percentage (e.g., 20 for 20%)</p>
+              
+              {/* Display final prize pool after taxes */}
+              {formData.prizePool && formData.taxPercentage && parseFloat(formData.prizePool) > 0 && parseFloat(formData.taxPercentage) > 0 && (
+                <div className="mt-3 p-3 bg-lava-orange/10 border border-lava-orange/30 rounded-lg">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-300">Original Prize Pool:</span>
+                      <span className="text-sm font-bold text-off-white">₹{parseFloat(formData.prizePool || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-300">Tax ({formData.taxPercentage}%):</span>
+                      <span className="text-sm font-bold text-red-400">
+                        - ₹{(parseFloat(formData.prizePool || 0) * parseFloat(formData.taxPercentage || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="border-t border-lava-orange/30 pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-bold text-lava-orange">Final Prize Pool After Taxes:</span>
+                        <span className="text-lg font-bold text-fiery-yellow">
+                          ₹{(parseFloat(formData.prizePool || 0) * (1 - parseFloat(formData.taxPercentage || 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
